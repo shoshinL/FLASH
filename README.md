@@ -1,2 +1,1 @@
-# FLASH
-FLASH - Flashcard Leveraging Agentic Study Help
+# FLASH - Flashcard Leveraging Agentic Study Help
