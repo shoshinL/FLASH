@@ -4,6 +4,8 @@ import sys
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from test import double_integer
+
 PID = os.getpid()
 app = Flask(__name__)
 app_config = {"host": "0.0.0.0", "port": sys.argv[1]}
@@ -36,6 +38,17 @@ def example():
   # See /src/components/App.js for frontend call
   return jsonify(f"Example response from Flask! Learn more in /app.py & /src/components/App.js\nI'm writing even more! Name: {__name__}")
 
+@app.route('/double', methods=['POST'])
+def double_number():
+    # Extract the number from the incoming JSON request
+    data = request.get_json()
+    number = data['number']
+    
+    # Double the number
+    doubled_number = double_integer(number)
+    
+    # Return the doubled number
+    return jsonify({'doubledNumber': doubled_number})
 
 """
 -------------------------- APP SERVICES ----------------------------
@@ -48,7 +61,7 @@ def quit():
     assert pid == PID 
     os.kill(pid, signal.SIGINT)
 
-    return 'Server shutting down...', 200
+    return 
 
 
 if __name__ == "__main__":
