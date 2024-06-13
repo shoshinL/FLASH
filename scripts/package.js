@@ -161,7 +161,7 @@ class Packager {
           banner: resolvePath('../utilities/msi/images/banner.png')
         }
       },
-      version: '1.0.0'
+      version: '0.1'
     });
 
     // Customized MSI template
