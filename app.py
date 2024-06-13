@@ -1,10 +1,10 @@
 import os
 import signal
 import sys
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 
-from test import double_integer
+from test import get_deck_due_tree
 
 PID = os.getpid()
 app = Flask(__name__)
@@ -38,17 +38,12 @@ def example():
   # See /src/components/App.js for frontend call
   return jsonify(f"Example response from Flask! Learn more in /app.py & /src/components/App.js\nI'm writing even more! Name: {__name__}")
 
-@app.route('/double', methods=['POST'])
-def double_number():
-    # Extract the number from the incoming JSON request
-    data = request.get_json()
-    number = data['number']
-    
-    # Double the number
-    doubled_number = double_integer(number)
-    
-    # Return the doubled number
-    return jsonify({'doubledNumber': doubled_number})
+@app.route('/dueTree')
+def get_due_tree():
+    deck_due_tree = get_deck_due_tree()
+    print(f'dueTree data: {deck_due_tree}')  # Log the data
+    deck_due_tree_str = str(deck_due_tree)
+    return jsonify(deck_due_tree_str)
 
 """
 -------------------------- APP SERVICES ----------------------------
