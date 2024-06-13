@@ -1,14 +1,14 @@
 const { spawnSync } = require('child_process');
 const { Builder } = require('./build');
+const { MSICreator } = require('electron-wix-msi');
+const path = require('path');
 
 const builder = new Builder();
 
 // Define input and output directories
-const path = (directory) => {
-  return require('path').resolve(__dirname, directory);
+const resolvePath = (directory) => {
+  return path.resolve(__dirname, directory);
 };
-
-const { MSICreator } = require('electron-wix-msi');
 
 /**
  * @namespace Packager
@@ -41,12 +41,12 @@ class Packager {
       ].join(' '),
 
       package: [
-        `--src ${path('../dist/linux/app-linux-x64/')}`,
+        `--src ${resolvePath('../dist/linux/app-linux-x64/')}`,
         'flash-for-anki',
-        `--dest ${path('../dist/linux/setup')}`,
+        `--dest ${resolvePath('../dist/linux/setup')}`,
         '--arch amd64',
-        `--icon ${path('../utilities/deb/images/icon.ico')}`,
-        `--background ${path('../utilities/deb/images/background.png')}`,
+        `--icon ${resolvePath('../utilities/deb/images/icon.ico')}`,
+        `--background ${resolvePath('../utilities/deb/images/background.png')}`,
         '--title "FLASH - Flashcard Leveraging Agentic Study Help"',
         '--overwrite'
       ].join(' '),
@@ -75,18 +75,19 @@ class Packager {
         'app',
         '--extra-resource=./resources',
         '--icon ./public/favicon.ico',
-        '--win32',
+        '--platform darwin',
+        '--arch x64',
         '--out',
         './dist/mac',
         '--overwrite'
       ].join(' '),
 
       package: [
-        path('../dist/mac/app-darwin-x64/app.app'),
+        resolvePath('../dist/mac/app-darwin-x64/app.app'),
         'flash-for-anki',
-        `--out=${path('../dist/mac/setup')}`,
-        `--icon=${path('../utilities/dmg/images/icon.icns')}`,
-        `--background=${path('../utilities/dmg/images/background.png')}`,
+        `--out=${resolvePath('../dist/mac/setup')}`,
+        `--icon=${resolvePath('../utilities/dmg/images/icon.icns')}`,
+        `--background=${resolvePath('../utilities/dmg/images/background.png')}`,
         '--title="FLASH - Flashcard Leveraging Agentic Study Help"',
         '--overwrite'
       ].join(' '),
@@ -123,29 +124,41 @@ class Packager {
         '--arch x64',
         '--out',
         './dist/windows',
-        '--overwrite'
+        '--overwrite',
+        '--executable-name=FLASH'
       ].join(' '),
 
       spawn: { detached: false, shell: true, stdio: 'inherit' }
     };
 
-    spawnSync(`electron-packager . ${options.app}`, options.spawn);
+    const result = spawnSync(`electron-packager . ${options.app}`, options.spawn);
+    if (result.error) {
+      console.error('Error during Electron packaging:', result.error);
+      return;
+    }
+    console.log('Electron packaging completed.');
 
+    const appDirectory = resolvePath('../dist/windows/app-win32-x64');
+    const outputDirectory = resolvePath('../dist/windows/setup');
+    const iconPath = resolvePath('../utilities/msi/images/icon.ico');
 
+    console.log(`App directory: ${appDirectory}`);
+    console.log(`Output directory: ${outputDirectory}`);
+    console.log(`Icon path: ${iconPath}`);
 
     const msiCreator = new MSICreator({
-      appDirectory: path('../dist/windows/app-win32-x64'),
-      appIconPath: path('../utilities/msi/images/icon.ico'),
+      appDirectory,
+      appIconPath: iconPath,
       description: 'FLASH - Flashcard Leveraging Agentic Study Help',
-      exe: 'app',
+      exe: 'FLASH',
       manufacturer: 'Linus A. Schneider',
-      name: 'flash-for-anki',
-      outputDirectory: path('../dist/windows/setup'),
+      name: 'FLASH for Anki',
+      outputDirectory,
       ui: {
         chooseDirectory: true,
         images: {
-          background: path('../utilities/msi/images/background.png'),
-          banner: path('../utilities/msi/images/banner.png')
+          background: resolvePath('../utilities/msi/images/background.png'),
+          banner: resolvePath('../utilities/msi/images/banner.png')
         }
       },
       version: '1.0.0'
@@ -156,11 +169,19 @@ class Packager {
       .replace(/ \(Machine - MSI\)/gi, '')
       .replace(/ \(Machine\)/gi, '');
 
-
-    // Create .wxs template and compile MSI
-    msiCreator.create().then(() => msiCreator.compile());
+    console.log('Creating .wxs template...');
+    msiCreator.create()
+      .then(() => {
+        console.log('Template created successfully. Compiling MSI...');
+        return msiCreator.compile();
+      })
+      .then(() => {
+        console.log('MSI compilation completed successfully.');
+      })
+      .catch(error => {
+        console.error('Error creating or compiling MSI:', error);
+      });
   };
-
 }
 
 module.exports.Packager = Packager;
