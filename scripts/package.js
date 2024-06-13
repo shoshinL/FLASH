@@ -8,6 +8,8 @@ const path = (directory) => {
   return require('path').resolve(__dirname, directory);
 };
 
+const { MSICreator } = require('electron-wix-msi');
+
 /**
  * @namespace Packager
  * @description - Packages app for various operating systems.
@@ -117,7 +119,8 @@ class Packager {
         '--asar',
         '--extra-resource=./resources/app',
         '--icon ./public/favicon.ico',
-        '--win32',
+        '--platform win32',
+        '--arch x64',
         '--out',
         './dist/windows',
         '--overwrite'
@@ -128,7 +131,7 @@ class Packager {
 
     spawnSync(`electron-packager . ${options.app}`, options.spawn);
 
-    const { MSICreator } = require('electron-wix-msi');
+
 
     const msiCreator = new MSICreator({
       appDirectory: path('../dist/windows/app-win32-x64'),
