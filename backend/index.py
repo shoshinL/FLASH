@@ -72,5 +72,7 @@ def update_ticker():
 
 
 if __name__ == "__main__":
-    window = webview.create_window("pywebview-react boilerplate", entry, js_api=Api())
+    window = webview.create_window("FLASH", entry, js_api=Api())
+    #TODO Make debug False
     webview.start(update_ticker, debug=True)
+
