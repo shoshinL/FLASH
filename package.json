@@ -1,76 +1,48 @@
 {
-  "author": "Linus Andreas Schneider",
-  "description": "Electron App connecting to Anki which uses DocumentAI and LLM agents to automatically generate flashcards",
-  "dependencies": {
-    "@reduxjs/toolkit": "^1.1.0",
-    "axios": "^0.21.1",
-    "electron-is-dev": "^1.2.0",
-    "get-port": "^5.1.1",
-    "prop-types": "^15.7.2",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "react-redux": "^7.2.0",
-    "react-scripts": "3.4.1"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.3.2",
-    "@testing-library/user-event": "^7.1.2",
-    "babel-eslint": "^10.1.0",
-    "cross-env": "^7.0.3",
-    "electron": "^13.0.1",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-installer-dmg": "^3.0.0",
-    "electron-packager": "^15.0.0",
-    "electron-wix-msi": "^3.2.0",
-    "eslint-config-airbnb": "^18.2.1",
-    "eslint-plugin-import": "^2.23.4",
-    "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-react": "^7.24.0",
-    "eslint-plugin-standard": "^5.0.0",
-    "jsdoc": "^3.6.5",
-    "sass": "^1.26.5"
-  },
-  "optionalDependencies": {
-    "electron-installer-debian": "^3.1.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "build": {
-    "extraResources": [
-      "./resources/app"
-    ]
-  },
-  "homepage": "./",
-  "license": "AGPL-3.0-only",
-  "main": "main.js",
   "name": "flash-for-anki",
-  "private": true,
+  "version": "0.0.0",
+  "description": "Flashcard Leveraging Agentic Study Help",
   "scripts": {
-    "build": "node ./scripts/dispatch build all",
-    "build:all": "node ./scripts/dispatch build all",
-    "build:react": "node ./scripts/dispatch build react",
-    "build:python": "node ./scripts/dispatch build python",
-    "build:docs": "jsdoc -c jsdoc.json",
-    "build:package:linux": "node ./scripts/dispatch package linux",
-    "build:package:mac": "node ./scripts/dispatch package mac",
-    "build:package:windows": "node ./scripts/dispatch package windows",
-    "clean": "node ./scripts/dispatch clean",
-    "eject": "react-scripts eject",
-    "start": "node ./scripts/dispatch start",
-    "start:electron": "electron .",
-    "start:react": "react-scripts start",
-    "test": "react-scripts test"
+    "build": "npm run clean && npm run build-frontend && run-script-os",
+    "build:macos": "./venv/bin/python build-macos.py py2app",
+    "build:windows": ".\\venv\\Scripts\\pyinstaller build-windows.spec",
+    "build:linux": "./venv/bin/pyinstaller build-linux.spec",
+    "build-frontend": "cd frontend && npm run build",
+    "clean": "run-script-os",
+    "clean:default": "rm -rf dist 2>/dev/null; rm -rf gui 2>/dev/null; rm -rf build 2>/dev/null; ",
+    "clean:windows": "if exist dist rd /S /Q dist & if exist build rd /S /Q build & if exist gui rd /S /Q gui",
+    "dev": "cd frontend && npm run dev",
+    "init": "npm install && npm run init-frontend",
+    "init-frontend": "cd frontend && npm install",
+    "start": "npm run build-frontend && run-script-os",
+    "start:windows": ".\\venv\\Scripts\\python backend\\index.py",
+    "start:default": "./venv/bin/python backend/index.py"
   },
-  "version": "0.1"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shoshinL/FLASH"
+  },
+  "keywords": [
+    "python",
+    "react",
+    "javascript",
+    "typescript",
+    "anki",
+    "langgraph",
+    "langchain",
+    "nvidia",
+    "pywebview",
+    "vite"
+  ],
+  "author": "Linus Andreas Schneider",
+  "license": "AGPL-3.0-only",
+  "licenses": [
+    {
+      "type": "AGPL-3.0-only",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
+    }
+  ],
+  "devDependencies": {
+    "run-script-os": "^1.1.6"
+  }
 }
