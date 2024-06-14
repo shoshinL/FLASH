@@ -37,6 +37,19 @@ export function Editor() {
       >
         Save
       </button>
+
+      <button
+        className="button"
+        onClick={() => {
+          // @ts-expect-error
+          window.pywebview.api.get_anki_deck().then((deck: string) => {
+            alert(deck);
+          });
+        }}>
+        Get Anki Deck
+      </button>
+
+
     </div>
   );
 }

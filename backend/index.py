@@ -4,6 +4,7 @@ from time import time
 
 import numpy as np
 import webview
+from ankitest import get_deck_due_tree
 
 
 class Api:
@@ -20,6 +21,9 @@ class Api:
 
         with open(filename, "w") as f:
             f.write(content)
+    
+    def get_anki_deck(self):
+        return str(get_deck_due_tree())
 
     def ls(self):
         return os.listdir(".")
