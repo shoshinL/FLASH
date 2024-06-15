@@ -19,7 +19,6 @@ if os.path.exists("dist/index.app"):
 ENTRY_POINT = ["backend/index.py"]
 
 DATA_FILES = tree("gui")
-DATA_FILES.append(('.', ['backend/storage.db']))
 
 OPTIONS = {
     "argv_emulation": False,
