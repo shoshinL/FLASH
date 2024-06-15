@@ -47,6 +47,15 @@ export function Editor() {
         Get Anki Deck
       </button>
 
+      <button
+        className="button"
+        onClick={() => {
+          window.pywebview.api.reset_api_key();
+        }
+      }>
+        Reset API Key
+      </button>
+
 
     </div>
   );

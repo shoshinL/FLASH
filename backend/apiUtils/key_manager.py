@@ -1,6 +1,10 @@
 import sqlite3
 import os
 import sys
+from cryptography.fernet import Fernet 
+
+ENCRYPTION_KEY = b'FOFbM9Z0p86bFW1KiDwLdvZS7iBr6_1BG5GLkhKlMcc='
+fernet = Fernet(ENCRYPTION_KEY)
 
 def get_db_path():
     # Determine the appropriate application data directory based on the OS
@@ -23,50 +27,65 @@ def get_db_path():
 
 DB_PATH = get_db_path()
 
-def api_key_exists() -> bool:
+def api_table_exists() -> bool:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='api_keys';")
     table_exists = cursor.fetchone()
 
-    if table_exists:
-        cursor.execute("SELECT id FROM api_keys WHERE id = 1;")
-        key_exists = cursor.fetchone()
-        return key_exists
-        
-    return False
+    conn.close()
+    return table_exists
+
+def api_key_exists() -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM api_keys WHERE id = 1;")
+    key_exists = cursor.fetchone()
+
+    conn.close()
+    return key_exists
+
+def api_key_available() -> bool:
+    return api_table_exists() and api_key_exists()
 
 def set_api_key(window) -> None:
-    api_key = get_valid_api_key(window)
+    api_key = request_valid_api_key(window)
     api_key = api_key.strip()  # Remove leading/trailing whitespace 
+
+    encrypted_key = fernet.encrypt(api_key.encode())
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('''
-    CREATE TABLE api_keys (
-        id INTEGER PRIMARY KEY,
-        key TEXT
-    )
-    ''')
+    if not api_table_exists():
+        cursor.execute('''
+        CREATE TABLE api_keys (
+            id INTEGER PRIMARY KEY,
+            encrypted_key BLOB
+        )
+        ''')
 
-
-    cursor.execute('''
-    INSERT INTO api_keys (key) VALUES (?)
-    ''', (api_key,))
+    if not api_key_exists():
+        cursor.execute('''
+        INSERT INTO api_keys (encrypted_key) VALUES (?)
+        ''', (encrypted_key,))
+    else:
+        cursor.execute('''
+        UPDATE api_keys SET encrypted_key = ? WHERE id = 1
+        ''', (encrypted_key,))
 
     conn.commit()
     conn.close()
 
-    print(f"API key has been stored in {DB_PATH}.")
+    print(f"Encrypted API key has been stored in {DB_PATH}.")
 
-def get_valid_api_key(window):
+def request_valid_api_key(window):
     while True:
         api_key = window.evaluate_js('prompt("Please enter your nVidia nim-API key (must start with nvapi-):")')
         if api_key:
-            api_key = api_key.strip()  # Strip leading/trailing spaces
-            print(f"Retrieved api_key: '{api_key}'")  # Debugging
+            api_key = api_key.strip()
             if api_key.startswith("nvapi-"):
                 return api_key
             else:
@@ -83,6 +102,8 @@ def get_api_key() -> str:
     conn.close()
 
     if result:
-        return result[0]
+        encrypted_key = result[0]
+        decrypted_key = fernet.decrypt(encrypted_key).decode()
+        return decrypted_key
     else:
         raise ValueError("API key not found in the database.")

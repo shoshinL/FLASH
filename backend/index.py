@@ -4,7 +4,7 @@ from time import time
 
 import webview
 from ankiUtils.ankitest import get_deck_due_tree
-from apiUtils.key_manager import api_key_exists, set_api_key, get_api_key
+from apiUtils.key_manager import api_key_available, set_api_key
 
 
 class Api:
@@ -22,6 +22,9 @@ class Api:
     
     def get_anki_deck(self):
         return str(get_deck_due_tree())
+    
+    def reset_api_key(self):
+        set_api_key(webview.windows[0])
 
     # TODO implement function
     def make_card(self, content):
@@ -71,7 +74,7 @@ entry = get_entrypoint()
 if __name__ == "__main__":
     #TODO Make debug False
     window = webview.create_window("FLASH", entry, js_api=Api())
-    if not api_key_exists():
+    if not api_key_available():
         window.events.loaded += lambda: set_api_key(window)
     webview.start(debug=True)
 
