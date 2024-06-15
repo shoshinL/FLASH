@@ -2,14 +2,12 @@ import os
 import threading
 from time import time
 
-import numpy as np
 import webview
-from ankitest import get_deck_due_tree
+from ankiUtils.ankitest import get_deck_due_tree
+from apiUtils.key_manager import api_key_exists, set_api_key, get_api_key
 
 
 class Api:
-    def rand_arr(self):
-        return np.random.rand(10).tolist()
 
     def fullscreen(self):
         webview.windows[0].toggle_fullscreen()
@@ -24,6 +22,10 @@ class Api:
     
     def get_anki_deck(self):
         return str(get_deck_due_tree())
+
+    # TODO implement function
+    def make_card(self, content):
+        return content
 
     def ls(self):
         return os.listdir(".")
@@ -66,17 +68,11 @@ def set_interval(interval):
 
 entry = get_entrypoint()
 
-
-@set_interval(1)
-def update_ticker():
-    if len(webview.windows) > 0:
-        webview.windows[0].evaluate_js(
-            'window.pywebview.state.setTicker("%d")' % time()
-        )
-
-
 if __name__ == "__main__":
-    window = webview.create_window("FLASH", entry, js_api=Api())
     #TODO Make debug False
-    webview.start(update_ticker, debug=True)
+    window = webview.create_window("FLASH", entry, js_api=Api())
+    if not api_key_exists():
+        window.events.loaded += lambda: set_api_key(window)
+    webview.start(debug=True)
+
 

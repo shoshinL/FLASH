@@ -16,19 +16,6 @@ export function Editor() {
         }}
       />
       <br />
-
-      <button
-        className="button"
-        onClick={() => {
-          // @ts-expect-error: We are using a custom API
-          window.pywebview.api.rand_arr().then((arr: number[]) => {
-            const randArrSttr = arr.join(", ");
-            saveContent(randArrSttr);
-          });
-        }}
-      >
-        Generate Rand Arr
-      </button>
       <button
         className="button"
         onClick={() => {
@@ -36,6 +23,17 @@ export function Editor() {
         }}
       >
         Save
+      </button>
+
+      <button
+        className="button"
+        onClick={() => {
+          // @ts-expect-error
+          window.pywebview.api.make_card(content).then((card: string) => {
+            alert(card);
+          });
+        }}>
+        MAKE CARD
       </button>
 
       <button

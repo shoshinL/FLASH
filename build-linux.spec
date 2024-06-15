@@ -3,6 +3,7 @@
 block_cipher = None
 added_files = [
     ('./gui', 'gui'),
+    ('./backend/storage.db', 'storage.db')
 ]
 
 a = Analysis(['./backend/index.py'],
