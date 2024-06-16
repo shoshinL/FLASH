@@ -29,22 +29,11 @@ export function Editor() {
         className="button"
         onClick={() => {
           // @ts-expect-error
-          window.pywebview.api.make_card(content).then((card: string) => {
-            alert(card);
+          window.pywebview.api.make_card(content).then((card: object) => {
+            alert(JSON.stringify(card));
           });
         }}>
         MAKE CARD
-      </button>
-
-      <button
-        className="button"
-        onClick={() => {
-          // @ts-expect-error
-          window.pywebview.api.get_anki_deck().then((deck: string) => {
-            alert(deck);
-          });
-        }}>
-        Get Anki Deck
       </button>
 
       <button

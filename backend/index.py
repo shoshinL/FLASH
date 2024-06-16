@@ -3,8 +3,11 @@ import threading
 from time import time
 
 import webview
-from ankiUtils.ankitest import get_deck_due_tree
 from apiUtils.key_manager import api_key_available, set_api_key
+from agents.agenttest import generate_card
+from ankiUtils.note_models import BasicNote
+from ankiUtils.note_manager import generate_note, add_note
+from ankiUtils.collection_manager import sync
 
 
 class Api:
@@ -20,15 +23,18 @@ class Api:
         with open(filename, "w") as f:
             f.write(content)
     
-    def get_anki_deck(self):
-        return str(get_deck_due_tree())
-    
     def reset_api_key(self):
         set_api_key(webview.windows[0])
 
     # TODO implement function
     def make_card(self, content):
-        return content
+        if BasicNote.valid:
+            generation = generate_card(content, BasicNote)
+            note = generate_note(BasicNote, generation)
+            add_note(1618431839549, note)
+            sync("Linus")
+        
+        return generation
 
     def ls(self):
         return os.listdir(".")

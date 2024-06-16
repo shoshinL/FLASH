@@ -3,4 +3,8 @@ pywebview
 pyinstaller; sys_platform != 'darwin'
 py2app; sys_platform == 'darwin'
 anki
-genanki
+langchain
+langchain_core
+langchain_nvidia_ai_endpoints
+langgraph
+pydantic
