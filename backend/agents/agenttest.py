@@ -7,7 +7,7 @@ from ankiUtils.note_models import NoteModel, BasicModel
 #TODO make this more abstract and move the concrete prompts, outtput parser and so on to a different file
 model_id = "meta/llama3-70b-instruct"
 api_key = get_api_key()
-llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=1)
+llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
 def generate_card(source_material: str, note_model: NoteModel) -> BasicModel:
     parser = JsonOutputParser(pydantic_object=note_model.model)

@@ -6,8 +6,7 @@ import webview
 from apiUtils.key_manager import api_key_available, set_api_key
 from agents.agenttest import generate_card
 from ankiUtils.note_models import BasicNote
-from ankiUtils.note_manager import generate_note, add_note
-from ankiUtils.collection_manager import sync
+from ankiUtils.collection_manager import sync, generate_note, add_note
 
 
 class Api:
