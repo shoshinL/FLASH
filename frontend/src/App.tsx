@@ -1,10 +1,10 @@
-import { Header, Editor, Ticker } from "./components";
+import { Header, Heading, Editor } from "./components";
 
 function App() {
   return (
     <>
       <Header />
-      <Ticker />
+      <Heading />
       <Editor />
     </>
   );
