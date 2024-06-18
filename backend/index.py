@@ -35,13 +35,7 @@ class Api:
             sync("Linus")
         """
         # Invoke the graph and store the result
-        try:
-            graph.invoke({"documentpath": "C:\\Users\\linus\\Desktop\\layout_parser.pdf", "questioning_context": "It's a paper on layout parsing."}, debug=True, interrupt_after=["finish"])
-            result = graph.get_state({})
-        except KeyError as e:
-        # Log or handle the KeyError
-            result = graph.get_state({})
-            print(f"KeyError: {e}")
+        result = graph.invoke({"documentpath": "C:\\Users\\linus\\Desktop\\layout_parser.pdf", "questioning_context": "It's a paper on layout parsing."}, debug=True)
 
         # Open the output file in write mode
         with open('output.txt', 'w') as file:

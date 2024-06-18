@@ -39,7 +39,7 @@ class NoteGraphState(TypedDict):
     generated_questions: Annotated[List[str], operator.add] # The generated questions
     deduplicated_questions: List[str] # The deduplicated questions
     questions_with_answers: Annotated[List[QuestionWithAnswer], operator.add] # The questions with answers
-    notes: Annotated[dict, operator.add] # The completed notes
+    notes: Annotated[List, operator.add] # The completed notes
 
 class QuestionsState(TypedDict):
     """
@@ -51,6 +51,17 @@ class QuestionsState(TypedDict):
     """
     questioning_context: str
     questioning_chunk: List[Document]
+
+class NoteGeneratorState(TypedDict):
+    """
+    For Note Generation map-reduce.
+
+    Attributes:
+        question_with_answer: The question with answer
+        notes: The completed notes
+    """
+    question_with_answer: QuestionWithAnswer
+    notes: List
 
 ### Nodes
 def document_loader(state: NoteGraphState):
@@ -101,7 +112,7 @@ def question_deduplicator(state: NoteGraphState):
 
     return {"deduplicated_questions": [deduplicated_questions], "current_step": "Starting Card Generation..."}
 
-def generate_basic(state: NoteGraphState):
+def generate_basic(state: NoteGeneratorState):
     """
     Generates basic notes.
 
@@ -111,10 +122,10 @@ def generate_basic(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    notes = BasicNoteGenerator(state["questions_with_answers"])
+    notes = BasicNoteGenerator(state["question_with_answer"])
     return {"notes": [notes]}
 
-def generate_basic_and_reversed(state: NoteGraphState):
+def generate_basic_and_reversed(state: NoteGeneratorState):
     """
     Generates basic and reversed notes.
 
@@ -124,10 +135,10 @@ def generate_basic_and_reversed(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    notes = BasicAndReversedNoteGenerator(state["questions_with_answers"])
+    notes = BasicAndReversedNoteGenerator(state["question_with_answer"])
     return {"notes": [notes]}
 
-def generate_basic_type_in_answer(state: NoteGraphState):
+def generate_basic_type_in_answer(state: NoteGeneratorState):
     """
     Generates basic type in answer notes.
 
@@ -137,10 +148,10 @@ def generate_basic_type_in_answer(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    notes = BasicTypeInAnswerNoteGenerator(state["questions_with_answers"])
+    notes = BasicTypeInAnswerNoteGenerator(state["question_with_answer"])
     return {"notes": [notes]}
 
-def generate_cloze(state: NoteGraphState):
+def generate_cloze(state: NoteGeneratorState):
     """
     Generates cloze notes.
 
@@ -150,7 +161,7 @@ def generate_cloze(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    notes = ClozeNoteGenerator(state["questions_with_answers"])
+    notes = ClozeNoteGenerator(state["question_with_answer"])
     return {"notes": [notes]}
 
 note_graph = StateGraph(NoteGraphState)
@@ -183,7 +194,7 @@ def expert_router(state: NoteGraphState):
     for attr, value in vars(expert).items():
         if value != []:
             print("-------------- Routing ---------------")
-            routing += [Send(str(attr), {"questions_with_answer": questions_with_answers[i]}) for i in value]
+            routing += [Send(str(attr), {"question_with_answer": questions_with_answers[i]}) for i in value]
     if not routing:
         return END
     return routing

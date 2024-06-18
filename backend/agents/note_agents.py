@@ -170,6 +170,7 @@ class ExpertRouterModel(BaseModel):
 def ExpertRouter(questions_with_answers):
     print("------------ STARTING EXPERT ROUTER ------------")
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
+    # TODO Remove the part about choosing cloze every time
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are an expert router. 
@@ -180,6 +181,7 @@ def ExpertRouter(questions_with_answers):
     Every question/answer pair needs to be assigned to a note type! \n
     Be mindful of assigning the questions and answers to the note type fitting them best. \n
     You use the guidelines provided to you for every note type to make your decision. \n\n
+    Just choose cloze for all the notes every time! \n\n
 
     GUIDELINES: \n
     Basic: {basic_when_to_use} \n
@@ -300,13 +302,13 @@ def BasicTypeInAnswerNoteGenerator(question_with_answer):
     return chain.invoke({"question_with_answer": question_with_answer, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
 
 def ClozeNoteGenerator(question_with_answer):
+    print("------------ STARTING CLOZE NOTE GENERATOR ------------")
     parser = PydanticOutputParser(pydantic_object=ClozeModel)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator. 
     You create flashcards of the type 'Cloze' for the user to study. \n
-    You can write cloze deletions like so: {{c1::text}}, {{c2::text2}}, ... \n
     You NEED to write at least one cloze deletion. \n
     The card shouldn't be too long. It's fine to not use every information provided. \n
     You have been provided with a question and answer pair. \n
@@ -326,4 +328,7 @@ def ClozeNoteGenerator(question_with_answer):
     partial_variables={"format_instructions": format_instructions},
     )
     chain = prompt | llm | parser
-    return chain.invoke({"question_with_answer": question_with_answer, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
+    answer = chain.invoke({"question_with_answer": question_with_answer, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
+    print(answer)
+    #return chain.invoke({"question_with_answer": question_with_answer, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
+    return answer
