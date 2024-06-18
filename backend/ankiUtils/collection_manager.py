@@ -1,7 +1,6 @@
 from typing import List
 from anki.collection import Collection
 from .db_access import get_sync_auth
-from .note_models import NoteModel
 from anki.notes import Note
 
 col = Collection("C:\\Users\\linus\\AppData\\Roaming\\Anki2\\Linus\\collection.anki2")
@@ -23,11 +22,14 @@ def get_model(model_id: int):
 def get_model_fields(model_id: int) -> List[str]:
     return col.models.field_names(col.models.get(model_id))
 
-def generate_note(model: NoteModel, fields: dict) -> Note:
+def generate_note(generated_note: dict) -> Note:
+    """
     note = Note(col, model.anki_id)
     for field, value in fields.items():
         note.__setitem__(field, value)
     return note
+    """
+    pass
 
 def add_note(deck_id: int, note: Note) -> None:
     col.add_note(note, deck_id)

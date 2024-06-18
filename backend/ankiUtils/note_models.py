@@ -52,18 +52,3 @@ class NoteModel:
         else: return True
 
 
-BasicNote = NoteModel(
-    type="Basic",
-    model=BasicModel,
-    when_to_use="Use the BasicModel for straightforward, direct recall of factual information, such as definitions, dates, or simple mathematical formulas.",
-    when_not_to_use="Do not use the BasicModel for complex concepts or information that requires a deeper understanding or context to recall.",
-    how_to_use="Create a prompt on the Front of the flashcard that asks a direct question or requests a definition, and provide the clear, concise answer on the Back. Ensure that the answer is factual and to the point.",
-    examples=[
-        BasicModel(Front="What is the capital of France?", Back="Paris"),
-        BasicModel(Front="What is the atomic number of oxygen?", Back="8"),
-    ],
-    counter_examples=[
-        BasicModel(Front="What are the causes of the French Revolution?", Back="This is too complex for a BasicModel."),
-        BasicModel(Front="Explain the process of photosynthesis.", Back="This is too complex for a BasicModel."),
-    ]
-)

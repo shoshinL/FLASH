@@ -20,9 +20,9 @@ class RetrievalGraphState(TypedDict):
 
     Attributes:
     """
-    question: Question
+    question: str
     questions_with_answers: List[QuestionWithAnswer] # Add only the given question with answer as a single-element list
-    retriever: VectorStoreRetriever
+    retriever: List[VectorStoreRetriever]
     documents: List[Document]
     hallucinated: bool
 
@@ -37,10 +37,14 @@ def retrieve(state):
     Returns:
         state (dict): New key added to state, documents, that contains retrieved documents
     """
-    question = state["question"]["Question"]
+    question = state["question"]
 
+    print("--------------------------------GOT QUESTOIN ----------------------------------")
+
+    print(f"RETRIEVER: {state['retriever']}")
     # Retrieval
-    documents = state["retriever"].invoke(question)
+    documents = state["retriever"][0].invoke(question)
+    print("--------------------------------GOT DOCUMENTS ----------------------------------")
     return {"documents": documents, "question": question, "questions_with_answers": []}
 
 def grade_documents(state):
@@ -53,12 +57,12 @@ def grade_documents(state):
     Returns:
         state (dict): The state with only relevant documents
     """
-    question = state["question"]["Question"]
+    question = state["question"]
     documents = state["documents"]
     filtered_documents = []
     for document in documents:
         #TODO
-        score = DocumentGrader.invoke({"question": question, "document": document})
+        score = DocumentGrader(question, document)
         grade = score["score"]
         if grade.lower() == "yes":
             filtered_documents.append(document)
@@ -76,12 +80,12 @@ def generate_answers(state):
     Returns:
         state (dict): The state with the answers added to the questions
     """
-    question = state["question"]["Question"]
+    question = state["question"]
     documents = state["documents"]
     hallucinated = (state["questions_with_answers"] != [])
 
-    answer = AnswerGenerator.invoke({"question": question, "documents": documents})
-    return {"questions_with_answers": [{"Question": question, "Answer": answer}], "hallucinated": hallucinated}
+    answer = AnswerGenerator(question, documents)
+    return {"questions_with_answers": [{"Question": question, "Answer": answer['answer']}], "hallucinated": hallucinated, "retriever": []}
 
 def answer_scrubber(state):
     """
@@ -93,12 +97,14 @@ def answer_scrubber(state):
     Returns:
         state (dict): The state with the scrubbed answers
     """
-    return {"questions_with_answers": []}
+    return {"questions_with_answers": [], "retriever": []}
 
+print("------ SCRUBBING ANSWERS ------")
 retrieval_graph = StateGraph(RetrievalGraphState)
 retrieval_graph.add_node("retrieve", retrieve)
 retrieval_graph.add_node("grade_documents", grade_documents)
 retrieval_graph.add_node("generate_answers", generate_answers)
+retrieval_graph.add_node("answer_scrubber", answer_scrubber)
 
 ### Edges
 def check_if_documents_left(state):
@@ -127,19 +133,21 @@ def grade_hallucination(state):
         str: The next node to go to
     """
     documents = state["documents"]
-    question = state["questions_with_answers"]["Question"]
-    answer = state["questions_with_answers"]["Answer"]
+    answer = state["questions_with_answers"][0]["Answer"]
 
-    grade = HallucinationGrader.invoke({"answer": answer, "documents": documents})
+    grade = HallucinationGrader(answer, documents)
+    grade = grade["score"]
     if grade.lower() == "no":
         if state["hallucinated"]:
             return "answer_scrubber"
         return "generate_answers"
+    print("----------------------DONE WITH RETRIEVAL----------------------")
+    print(f"QUestion with answer: {state['questions_with_answers']}")
     return END
 
 retrieval_graph.set_entry_point("retrieve")
 retrieval_graph.add_edge("retrieve", "grade_documents")
-retrieval_graph.add_conditional_edge("grade_documents", check_if_documents_left)
+retrieval_graph.add_conditional_edges("grade_documents", check_if_documents_left)
 retrieval_graph.add_conditional_edges("generate_answers", grade_hallucination)
 retrieval_graph.set_finish_point("answer_scrubber")
 

@@ -35,11 +35,11 @@ class NoteGraphState(TypedDict):
     questioning_context: str # The context of the questioning
     documentpath: str # The path to the document
     questioning_chunks: List[Document]
-    retriever: VectorStoreRetriever
-    generated_questions: Annotated[Questions, operator.add] # The generated questions
-    deduplicated_questions: Questions
+    retriever: Annotated[VectorStoreRetriever, operator.add] # The retriever
+    generated_questions: Annotated[List[str], operator.add] # The generated questions
+    deduplicated_questions: List[str] # The deduplicated questions
     questions_with_answers: Annotated[List[QuestionWithAnswer], operator.add] # The questions with answers
-    notes: Annotated[List[BaseModel], operator.add] # The completed notes
+    notes: Annotated[dict, operator.add] # The completed notes
 
 class QuestionsState(TypedDict):
     """
@@ -50,7 +50,7 @@ class QuestionsState(TypedDict):
         quenstioning_chunks: The document to be used for generating questions 
     """
     questioning_context: str
-    questioning_chunks: List[Document]
+    questioning_chunk: List[Document]
 
 ### Nodes
 def document_loader(state: NoteGraphState):
@@ -67,7 +67,7 @@ def document_loader(state: NoteGraphState):
     """
     document = load_pdf(state["documentpath"])
     questioning_chunks = get_question_formulation_chunks(document)
-    retriever = get_retrieval_embeddings(questioning_chunks)
+    retriever = [get_retrieval_embeddings(questioning_chunks)]
     return {
          "current_step": "Starting Question Generation...",
          "questioning_chunks": questioning_chunks,
@@ -84,7 +84,7 @@ def question_generator(state: QuestionsState):
     Returns:
         state (dict): The updated state of the graph
     """
-    questions = QuestionGenerator(state["questioning_chunks"], state["questioning_context"])
+    questions = QuestionGenerator(state["questioning_chunk"], state["questioning_context"])
     return {"generated_questions": [questions]}
 
 def question_deduplicator(state: NoteGraphState):
@@ -112,7 +112,7 @@ def generate_basic(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     notes = BasicNoteGenerator(state["questions_with_answers"])
-    return {"notes": notes}
+    return {"notes": [notes]}
 
 def generate_basic_and_reversed(state: NoteGraphState):
     """
@@ -125,7 +125,7 @@ def generate_basic_and_reversed(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     notes = BasicAndReversedNoteGenerator(state["questions_with_answers"])
-    return {"notes": notes}
+    return {"notes": [notes]}
 
 def generate_basic_type_in_answer(state: NoteGraphState):
     """
@@ -138,7 +138,7 @@ def generate_basic_type_in_answer(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     notes = BasicTypeInAnswerNoteGenerator(state["questions_with_answers"])
-    return {"notes": notes}
+    return {"notes": [notes]}
 
 def generate_cloze(state: NoteGraphState):
     """
@@ -151,48 +151,53 @@ def generate_cloze(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     notes = ClozeNoteGenerator(state["questions_with_answers"])
-    return {"notes": notes}
+    return {"notes": [notes]}
 
 note_graph = StateGraph(NoteGraphState)
 note_graph.add_node("document_loader", document_loader)
 note_graph.add_node("question_generator", question_generator)
 note_graph.add_node("question_deduplicator", question_deduplicator)
 note_graph.add_node("answer_generator", retrieval_graph.compile())
+note_graph.add_node("generated_answers_state_updater", lambda state: {"current_step": "Finishing up Card Generation..."})
 note_graph.add_node("Basic", generate_basic)
 note_graph.add_node("BasicAndReversed", generate_basic_and_reversed)
 note_graph.add_node("BasicTypeInAnswer", generate_basic_type_in_answer)
 note_graph.add_node("Cloze", generate_cloze)
+note_graph.add_node("finish", lambda state: {"current_step": "Finished!"})
 
 
 ### Edges
 def map_questioning_chunks(state: NoteGraphState):
-    return [Send("question_generator", {"document": doc}) for doc in state["questioning_chunks"]]
+    return [Send("question_generator", {"questioning_chunk": chunk, "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
 
 def map_questions(state: NoteGraphState):
-    return [Send("answer_generator", {"question": question}) for question in state["deduplicated_questions"]]
+    return [Send("answer_generator", {"question": question, "retriever": state["retriever"], }) for question in state["deduplicated_questions"][0].Questions]
 
 def expert_router(state: NoteGraphState):
+    print("-------------- STARTING ROUTING --------------")
     questions_with_answers = state["questions_with_answers"]
     expert = ExpertRouter(questions_with_answers)
+    print("-------------- EXPERT ROUTER DONE --------------")
     routing = []
-    for key in expert.keys():
-        indices = expert[key]
-        questions_with_answers_for_key = [questions_with_answers[i] for i in indices]
-        routing.append(Send(key, {"questions_with_answer": questions_with_answers_for_key}))
+    print(f"Expert: {expert}")
+    for attr, value in vars(expert).items():
+        if value != []:
+            print("-------------- Routing ---------------")
+            routing += [Send(str(attr), {"questions_with_answer": questions_with_answers[i]}) for i in value]
+    if not routing:
+        return END
     return routing
 
 note_graph.set_entry_point("document_loader")
 note_graph.add_conditional_edges("document_loader", map_questioning_chunks)
 note_graph.add_edge("question_generator", "question_deduplicator")
 note_graph.add_conditional_edges("question_deduplicator", map_questions)
-note_graph.add_conditional_edges("answer_generator", expert_router)
-note_graph.add_edge("Basic", END)
-note_graph.add_edge("BasicAndReversed", END)
-note_graph.add_edge("BasicTypeInAnswer", END)
-note_graph.add_edge("Cloze", END)
+note_graph.add_edge("answer_generator", "generated_answers_state_updater")
+note_graph.add_conditional_edges("generated_answers_state_updater", expert_router)
+note_graph.add_edge("Basic", "finish")
+note_graph.add_edge("BasicAndReversed", "finish")
+note_graph.add_edge("BasicTypeInAnswer", "finish")
+note_graph.add_edge("Cloze", "finish")
+note_graph.set_finish_point("finish")
 
 graph = note_graph.compile()
-from IPython.display import Image, display
-
-# Setting xray to 1 will show the internal structure of the nested graph
-display(Image(graph.get_graph(xray=1).draw_mermaid_png()))

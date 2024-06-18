@@ -31,7 +31,8 @@ def DocumentGrader(question, documents):
     input_variables=["question", "document"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    return (prompt | llm | parser.invoke({"question": question, "document": documents}))
+    chain = prompt | llm | parser
+    return (chain.invoke({"question": question, "document": documents}))
 
 def AnswerGenerator(question, documents):
     parser = JsonOutputParser(pydantic_object=Answer)
@@ -49,7 +50,8 @@ def AnswerGenerator(question, documents):
     input_variables=["question", "documents"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    return (prompt | llm | parser.invoke({"question": question, "documents": documents}))
+    chain = prompt | llm | parser
+    return (chain.invoke({"question": question, "documents": documents}))
 
     
 def HallucinationGrader(answer, documents):
@@ -71,4 +73,5 @@ def HallucinationGrader(answer, documents):
     input_variables=["answer", "documents"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    return (prompt | llm | parser.invoke({"answer": answer, "documents": documents}))
+    chain = prompt | llm | parser
+    return (chain.invoke({"answer": answer, "documents": documents}))

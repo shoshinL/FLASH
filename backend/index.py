@@ -4,9 +4,9 @@ from time import time
 
 import webview
 from apiUtils.key_manager import api_key_available, set_api_key
-from agents.agenttest import generate_card
-from ankiUtils.note_models import BasicNote
 from ankiUtils.collection_manager import sync, generate_note, add_note
+from agents.note_graph import graph
+from IPython.display import Image, display
 
 
 class Api:
@@ -27,13 +27,27 @@ class Api:
 
     # TODO implement function
     def make_card(self, content):
+        """
         if BasicNote.valid:
             generation = generate_card(content, BasicNote)
             note = generate_note(BasicNote, generation)
             add_note(1618431839549, note)
             sync("Linus")
-        
-        return generation
+        """
+        # Invoke the graph and store the result
+        try:
+            graph.invoke({"documentpath": "C:\\Users\\linus\\Desktop\\layout_parser.pdf", "questioning_context": "It's a paper on layout parsing."}, debug=True, interrupt_after=["finish"])
+            result = graph.get_state({})
+        except KeyError as e:
+        # Log or handle the KeyError
+            result = graph.get_state({})
+            print(f"KeyError: {e}")
+
+        # Open the output file in write mode
+        with open('output.txt', 'w') as file:
+            # Write the result to the file
+            file.write(str(result))
+        return "Not implemented"
 
     def ls(self):
         return os.listdir(".")
