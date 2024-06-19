@@ -41,7 +41,6 @@ def retrieve(state):
 
     print("--------------------------------GOT QUESTOIN ----------------------------------")
 
-    print(f"RETRIEVER: {state['retriever']}")
     # Retrieval
     documents = state["retriever"][0].invoke(question)
     print("--------------------------------GOT DOCUMENTS ----------------------------------")
@@ -97,9 +96,10 @@ def answer_scrubber(state):
     Returns:
         state (dict): The state with the scrubbed answers
     """
+    print("------ SCRUBBING ANSWERS ------")
+
     return {"questions_with_answers": [], "retriever": []}
 
-print("------ SCRUBBING ANSWERS ------")
 retrieval_graph = StateGraph(RetrievalGraphState)
 retrieval_graph.add_node("retrieve", retrieve)
 retrieval_graph.add_node("grade_documents", grade_documents)

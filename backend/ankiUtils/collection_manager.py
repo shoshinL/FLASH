@@ -1,4 +1,5 @@
-from typing import List
+import os
+from typing import Dict, List
 from anki.collection import Collection
 from .db_access import get_sync_auth
 from anki.notes import Note
@@ -22,20 +23,37 @@ def get_model(model_id: int):
 def get_model_fields(model_id: int) -> List[str]:
     return col.models.field_names(col.models.get(model_id))
 
-def generate_note(generated_note: dict) -> Note:
-    """
-    note = Note(col, model.anki_id)
-    for field, value in fields.items():
-        note.__setitem__(field, value)
+def generate_note(generated_note: dict, filename: str) -> Note:
+    id = get_model_id(generated_note["Type"])
+    model = get_model(id)
+    note = Note(col, model)
+
+    fields = get_model_fields(id)
+
+    #validate that the generated note matches the model
+    for field in fields:
+        if field not in generated_note.keys():
+            print(f"Field: {field} not in generated note {generated_note}")
+            return None
+
+    for field in fields:
+        note.__setitem__(field, generated_note[field])
+
+    note.add_tag(f"FLASH_for_anki_from_{filename}")
     return note
-    """
-    pass
 
 def add_note(deck_id: int, note: Note) -> None:
     col.add_note(note, deck_id)
 
-def add_note(deck_id: int, note: dict):
-    col.add_note(note, deck_id)
+def add_notes_from_graph_to_deck(graphState, deck_id: int) -> None:
+    documentpath = graphState["documentpath"]
+    filename = os.path.basename(documentpath)
+    notes = graphState["notes"]
+
+    for note in notes:
+        note = generate_note(note, filename)
+        if note is not None:
+            add_note(deck_id, note)
 
 #TODO: This should trigger if the window is closed => Implement with hook.
 def sync(profile: str):

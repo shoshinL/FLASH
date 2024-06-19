@@ -7,6 +7,7 @@ from langchain.schema.document import Document
 from langchain_community.vectorstores import Chroma
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 import platform
+import tiktoken
 
 
 def load_pdf(file_path) -> List[Document]:
@@ -80,14 +81,33 @@ def concatenate_pages(documents: List[Document]) -> List[Document]:
     # Return the concatenated document
     return Document(concatenated_content, metadata=final_metadata)
 
-def get_question_formulation_chunks(documents: List[Document]) -> List[Document]:
-    # Assuming 'documents' is a list of Document instances sorted by their page number
-    document = concatenate_pages(documents)
+def get_question_formulation_chunks(documents: List[Document], question_context: str) -> List[Document]:
+    """
+    Splits concatenated document pages into chunks suitable for question formulation.
     
-    text_splitter_for_question_formulation = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=3000, chunk_overlap=500
+    Parameters:
+    documents (List[Document]): A list of Document instances sorted by their page number.
+    question_context (str): The context of the question to consider for chunk size adjustment.
+    
+    Returns:
+    List[Document]: A one-element list containing the concatenated documents.
+    """
+    # Concatenate all pages into a single Document instance
+    concatenated_document = concatenate_pages(documents)
+    
+    # Encode the question context into tokens using tiktoken
+    encoder = tiktoken.get_encoding("gpt2")  # Adjust based on the actual encoding method used
+    question_context_size = len(encoder.encode(question_context))
+    
+    # Initialize the text splitter with adjusted chunk size
+    adjusted_chunk_size = 5000 - question_context_size
+    chunk_overlap = 500
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=adjusted_chunk_size, 
+        chunk_overlap=chunk_overlap
     )
-
-    doc_splits_question_formulation = text_splitter_for_question_formulation.split_documents([document])
-
-    return doc_splits_question_formulation
+    
+    # Split the concatenated document into smaller chunks
+    doc_chunks = text_splitter.split_documents([concatenated_document])
+    
+    return doc_chunks

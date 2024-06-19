@@ -41,7 +41,8 @@ def AnswerGenerator(question, documents):
     You are a study assistant that generates an answer to a user question. 
     Use the retrieved documents to answer the question. \n
     If you don't know the answer, just say that you don't know.
-    Aim to be as accurate as possible and provide a detailed answer to help the user understand the topic better. \n
+    Aim to be as accurate as possible while being brief and concise! \n
+    The answer should be a sentence or AT MOST two sentences and should fit well on a flashcard. \n
     Here is the user question: {question} \n
     Here are the retrieved documents: \n\n {documents} \n\n
     {format_instructions}
