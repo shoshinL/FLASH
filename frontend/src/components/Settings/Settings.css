@@ -1,0 +1,62 @@
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: absolute;
+  top: 35%; /* Slightly above the center vertically */
+  left: 50%;
+  transform: translate(-50%, -35%);
+  padding: 30px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 600px; /* Increased width for larger container */
+}
+
+.settings-item {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.settings-item label {
+  margin-right: 10px;
+  font-weight: bold;
+  width: 150px; /* Fixed width for labels */
+}
+
+.file-path-input {
+  width: calc(100% - 160px); /* Adjusted width to fit within container */
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.file-path-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.select {
+  width: calc(100% - 160px); /* Adjusted width to fit within container */
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.reset-api-key-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+  transition: background-color 0.3s;
+  width: 100%; /* Full width button */
+  background-color: red; /* Always red */
+}
+
+.reset-api-key-button:hover {
+  background-color: darkred;
+}

@@ -1,32 +1,47 @@
 .header-container {
-  border-bottom: 1px solid #eaecef;
-  padding: 0.5rem 1rem;
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  height: 60px;
+  border-bottom: #cccccc 1px solid;
 }
 
-.header-container h2 {
-  font-size: 16pt;
-  margin: 6px;
+.logo-container {
+  display: flex;
+  align-items: center;
+  height: 50px; /* Set a fixed width to prevent jumping */
 }
 
-.header-container .logo {
-  height: 2.2rem;
+.logo {
+  height: 50px; /* Adjust size as necessary */
 }
 
-.header-container .links {
-  margin-left: auto;
+.button-icon {
+  cursor: pointer;
+  width: 50px; /* Set appropriate size for the back icon */
+  height: 50px; /* Maintain aspect ratio */
 }
 
-.header-container a:link,
-.header-container a:visited,
-.header-container a:focus {
-  color: inherit;
-  font-size: 12pt;
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
+.header-title {
+  margin-left: 10px; /* Adjust as needed to get the right spacing */
 }
 
-.header-container a:hover {
-  border-bottom: 2px solid #46bd87;
+.settings {
+  display: flex;
+  margin-left: auto; /* Pushes settings to the far right */
+  align-items: center; /* Ensure the button stays centered */
+}
+
+.settings-button {
+  padding: 5px 15px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.settings-button:hover, .settings-button.pressed {
+  background-color: #cccccc; /* Darker shade for hover and pressed state */
 }
