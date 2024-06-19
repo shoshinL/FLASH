@@ -130,7 +130,7 @@ ListNote = NotePromptModel(
 )
 
 
-def QuestionGenerator(questioning_chunk, max_questions, questioning_context):
+def QuestionGenerator(questioning_chunk, n_questions, questioning_context):
     parser = JsonOutputParser(pydantic_object=Questions)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -151,7 +151,7 @@ def QuestionGenerator(questioning_chunk, max_questions, questioning_context):
 
     Be mindful of what the user wants you to focus on in the document and the context of the questioning provided.
 
-    CUT THE LIST OF QUESTIONS DOWN TO {max_questions}! ONLY MAKE {max_questions} QUESTION!
+    GENERATE EXACTLY {n_questions}! ONLY MAKE {n_questions} QUESTION!
 
     Here is the document: \n\n {document} \n\n
 
@@ -163,16 +163,16 @@ def QuestionGenerator(questioning_chunk, max_questions, questioning_context):
     '''\n
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>
     """,
-    input_variables=["document", "max_questions", "questioning_context"],
+    input_variables=["document", "n_questions", "questioning_context"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
 
     chain = prompt | llm | parser
-    result = chain.invoke({"document": questioning_chunk, "max_questions": max_questions, "questioning_context": questioning_context})
+    result = chain.invoke({"document": questioning_chunk, "n_questions": n_questions, "questioning_context": questioning_context})
     
     return result
 
-def QuestionsDeduplicator(questions, max_questions):
+def QuestionsDeduplicator(questions, n_questions):
     parser = JsonOutputParser(pydantic_object=Questions)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -185,7 +185,7 @@ def QuestionsDeduplicator(questions, max_questions):
     valid questions you could add and do that.
     Respond ONLY with the list of questions, no preamble or explanation needed. \n
 
-    CUT THE LIST OF QUESTIONS DOWN TO {max_questions}! ONLY MAKE {max_questions} QUESTION!
+    GENERATE EXACTLY {n_questions}! ONLY MAKE {n_questions} QUESTION!
 
     questions: \n
     '''
@@ -194,11 +194,11 @@ def QuestionsDeduplicator(questions, max_questions):
     {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>
     """,
-    input_variables=["questions", "max_questions"],
+    input_variables=["questions", "n_questions"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
     chain = prompt | llm | parser
-    return chain.invoke({"questions": questions, "max_questions": max_questions})
+    return chain.invoke({"questions": questions, "n_questions": n_questions})
 
 #Should model a dict that has the note type and then a list of the INDICES of the questions and answers for that note type
 class ExpertRouterModel(BaseModel):

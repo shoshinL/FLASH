@@ -35,7 +35,7 @@ class Api:
 
         """
         # Invoke the graph and store the result
-        result = graph.invoke({"documentpath": "C:\\Users\\linus\\Desktop\\layout_parser.pdf", "questioning_context": "It's a paper on layout parsing. Focus on making short flashcards!", "max_questions": 3}, debug=True)
+        result = graph.invoke({"documentpath": "C:\\Users\\linus\\Desktop\\layout_parser.pdf", "questioning_context": "It's a paper on layout parsing. Focus on making short flashcards!", "n_questions": 3}, debug=True)
 
         add_notes_from_graph_to_deck(result, 1618431839549)
         sync("Linus")

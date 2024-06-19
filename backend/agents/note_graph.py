@@ -24,7 +24,7 @@ class NoteGraphState(TypedDict):
     Attributes:
     current_step: The current step in the graph used for loading bar
     questioning_context: The context of the questioning
-    max_questions: The maximum number of questions to generate
+    n_questions: The maximum number of questions to generate
     documentpath: The path to the document
     questioning_chunks: The documents to be used for generating questions
     generated_questions: The generated questions
@@ -34,7 +34,7 @@ class NoteGraphState(TypedDict):
     """
     current_step: str # The current step in the graph used for loading bar
     questioning_context: str # The context of the questioning
-    max_questions: int # The maximum number of questions to generate
+    n_questions: int # The maximum number of questions to generate
     documentpath: str # The path to the document
     questioning_chunks: List[Document]
     retriever: Annotated[VectorStoreRetriever, operator.add] # The retriever
@@ -48,11 +48,11 @@ class QuestionsState(TypedDict):
     For Question generation map-reduce, if Input File is too large
     
     Attributes:
-        max_questions: The maximum number of questions to generate
+        n_questions: The maximum number of questions to generate
         questioning_context: The context of the questioning
         quenstioning_chunks: The document to be used for generating questions 
     """
-    max_questions: int
+    n_questions: int
     questioning_context: str
     questioning_chunk: List[Document]
 
@@ -99,7 +99,7 @@ def question_generator(state: QuestionsState):
     Returns:
         state (dict): The updated state of the graph
     """
-    questions = QuestionGenerator(state["questioning_chunk"], state["max_questions"], state["questioning_context"])
+    questions = QuestionGenerator(state["questioning_chunk"], state["n_questions"], state["questioning_context"])
     return {"generated_questions": [questions]}
 
 def question_deduplicator(state: NoteGraphState):
@@ -112,7 +112,7 @@ def question_deduplicator(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["max_questions"])
+    deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
     step = "Generating Answers..."
 
     return {"deduplicated_questions": deduplicated_questions, "current_step": step}
@@ -199,7 +199,7 @@ note_graph.add_node("finish", lambda state: {"current_step": "Finished!"})
 
 ### Edges
 def map_questioning_chunks(state: NoteGraphState):
-    return [Send("question_generator", {"questioning_chunk": chunk, "max_questions": state["max_questions"], "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
+    return [Send("question_generator", {"questioning_chunk": chunk, "n_questions": state["n_questions"], "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
 
 def map_questions(state: NoteGraphState):
     print(f"DEDUPLICATED QUESTIONS AFTER QUESTION GENERATION: {state['deduplicated_questions']}")
