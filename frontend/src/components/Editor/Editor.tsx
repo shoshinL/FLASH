@@ -89,7 +89,7 @@ export function Editor() {
     <div className="editor-container">
       <textarea
         className="textarea"
-        placeholder="Enter wishes and context for the flashcard generation here..."
+        placeholder="Enter what the flashcards should focus on in the document below..."
         value={content}
         onChange={(e) => {
           saveContent(e.target.value);
