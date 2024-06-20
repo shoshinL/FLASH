@@ -10,17 +10,17 @@
 .logo-container {
   display: flex;
   align-items: center;
-  height: 50px; /* Set a fixed width to prevent jumping */
+  height: 80px; /* Set a fixed width to prevent jumping */
 }
 
 .logo {
-  height: 50px; /* Adjust size as necessary */
+  height: 80px; /* Adjust size as necessary */
 }
 
 .button-icon {
   cursor: pointer;
-  width: 50px; /* Set appropriate size for the back icon */
-  height: 50px; /* Maintain aspect ratio */
+  width: 30px; /* Set appropriate size for the back icon */
+  height: 30px; /* Maintain aspect ratio */
 }
 
 .header-title {

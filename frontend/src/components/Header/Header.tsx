@@ -1,6 +1,6 @@
 import "./Header.css";
 import logo from "../../assets/logo.png";
-import backIcon from "../../assets/back.png"; // Ensure this icon is available in your assets
+import backIcon from "../../assets/arrow-left-long-solid.svg"; // Ensure this icon is available in your assets
 
 interface HeaderProps {
   showSettings: boolean;
