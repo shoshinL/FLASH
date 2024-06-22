@@ -1,13 +1,13 @@
 import os
 import threading
-
+import json
 import webview
 from apiUtils.settings_manager import SettingsManager
 from agents.note_graph import graph
 
 settings_manager = SettingsManager()
-class Api:
 
+class Api:
     def select_file(self):
         file_types = ('PDF Files (*.pdf)',)
         result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, file_types=file_types, allow_multiple=False)
@@ -17,20 +17,36 @@ class Api:
 
     def make_card(self, content, file_path):
         # Example: Using the content and file_path to create a card
-        # Invoke the graph and store the result
-        """
-        result = graph.invoke({"documentpath": file_path, "questioning_context": content, "n_questions": 3}, debug=True)
-
-        add_notes_from_graph_to_deck(result, 1618431839549)
-        sync("Linus")
-        # Open the output file in write mode
-        with open('output.txt', 'w') as file:
-            file.write(str(result))
-        """
-        return "Not implemented"
+        # This is a placeholder and should be implemented based on your specific requirements
+        return "Card creation not implemented"
 
     def reset_api_key(self):
         settings_manager.reset_api_key(webview.windows[0])
+        return {"api_key_set": settings_manager.api_key_exists()}
+
+    def get_settings(self):
+        return settings_manager.get_settings()
+
+    def get_profiles(self, anki_db_path):
+        profiles = settings_manager.get_profiles(anki_db_path)
+        return {"profiles": profiles}
+
+    def get_decks(self, profile):
+        decks = settings_manager.get_decks(profile)
+        return {"decks": decks}
+
+    def select_file_path(self):
+        new_path = webview.windows[0].create_file_dialog(webview.FOLDER_DIALOG)
+        if new_path:
+            return settings_manager._upsert_anki_db_path(new_path[0])
+        return {"error": "No path selected"}
+
+    def set_profile(self, profile):
+        return settings_manager._upsert_profile(profile)
+
+    def set_deck(self, deck_name):
+        settings_manager._upsert_deck_name(deck_name)
+        return {"success": True, "deck_name": deck_name}
 
 def get_entrypoint():
     def exists(path):
@@ -38,22 +54,22 @@ def get_entrypoint():
 
     if exists("../gui/index.html"):  # unfrozen development
         return "../gui/index.html"
-
     if exists("../Resources/gui/index.html"):  # frozen py2app
         return "../Resources/gui/index.html"
-
     if exists("./gui/index.html"):
         return "./gui/index.html"
-
     raise Exception("No index.html found")
 
 entry = get_entrypoint()
 
 if __name__ == "__main__":
-    # TODO Initialize the collection manger somewhere else so you don't get the weakref error. You can't pass it to the api (and don't need to. You just need to call some functions from it.)
-    window = webview.create_window("FLASH", entry, maximized=True, js_api=Api())
-    if not settings_manager.api_key_exists():
-        window.events.loaded += lambda: settings_manager.set_api_key_dialog()
-    webview.start(debug=True)
+    api = Api()
+    window = webview.create_window("FLASH", entry, maximized=True, js_api=api)
+    
+    def on_loaded():
+        if not settings_manager.api_key_exists():
+            settings_manager.reset_api_key(window)
 
-#TODO Initialize somewhere the connection whenever new profile is selected/set in the database => Needs to be used by collection manager
+    window.events.loaded += on_loaded
+    
+    webview.start(debug=True)

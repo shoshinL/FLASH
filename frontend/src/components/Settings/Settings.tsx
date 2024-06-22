@@ -1,104 +1,244 @@
 import { useState, useEffect } from "react";
 import "./Settings.css";
 
-interface SettingsProps {
-  apiBaseUrl: string;
+interface Settings {
+  anki_db_path: string;
+  profile: string;
+  deck_name: string;
+  api_key_set: boolean;
 }
 
-export function Settings({ apiBaseUrl }: SettingsProps) {
-  const [ankiDataLocation, setAnkiDataLocation] = useState<string>("C:/Users/NAME/Anki2");
-  const [ankiProfiles, setAnkiProfiles] = useState<string[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<string>("");
-  const [ankiDecks, setAnkiDecks] = useState<string[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<string>("");
-  const [apiKeySet, setApiKeySet] = useState<boolean>(false);
+interface ProfilesResponse {
+  profiles: string[];
+}
+
+interface DecksResponse {
+  decks: Record<string, number>;
+}
+
+interface AnkiPathResponse {
+  anki_db_path: string;
+  profile: string;
+  deck_name: string;
+  profiles: string[];
+  decks: Record<string, number>;
+}
+
+function isSettings(obj: any): obj is Settings {
+  return (
+    typeof obj === "object" &&
+    typeof obj.anki_db_path === "string" &&
+    typeof obj.profile === "string" &&
+    typeof obj.deck_name === "string" &&
+    typeof obj.api_key_set === "boolean"
+  );
+}
+
+function isProfilesResponse(obj: any): obj is ProfilesResponse {
+  return typeof obj === "object" && Array.isArray(obj.profiles);
+}
+
+function isDecksResponse(obj: any): obj is DecksResponse {
+  return typeof obj === "object" && typeof obj.decks === "object";
+}
+
+function isAnkiPathResponse(obj: any): obj is AnkiPathResponse {
+  return (
+    typeof obj === "object" &&
+    typeof obj.anki_db_path === "string" &&
+    typeof obj.profile === "string" &&
+    typeof obj.deck_name === "string" &&
+    Array.isArray(obj.profiles) &&
+    typeof obj.decks === "object"
+  );
+}
+
+export function Settings() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [profiles, setProfiles] = useState<string[]>([]);
+  const [decks, setDecks] = useState<Record<string, number>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch profiles from API
-    fetch(`${apiBaseUrl}/anki/profiles`)
-      .then(response => response.json())
-      .then(data => setAnkiProfiles(data))
-      .catch(error => console.error('Error fetching profiles:', error));
+    fetchSettings();
+  }, []);
 
-    // Fetch decks from API
-    fetch(`${apiBaseUrl}/anki/decks`)
-      .then(response => response.json())
-      .then(data => setAnkiDecks(data))
-      .catch(error => console.error('Error fetching decks:', error));
-
-    // Check if API key is set
-    fetch(`${apiBaseUrl}/anki/api-key-status`)
-      .then(response => response.json())
-      .then(data => setApiKeySet(data.isSet))
-      .catch(error => console.error('Error checking API key status:', error));
-  }, [apiBaseUrl]);
-
-  const handleSelectFilePath = () => {
-    // Trigger backend API call to select a file
-    fetch(`${apiBaseUrl}/anki/select-file-path`)
-      .then(response => response.json())
-      .then(data => setAnkiDataLocation(data.filePath))
-      .catch(error => console.error('Error selecting file path:', error));
+  const fetchSettings = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.get_settings();
+      if (isSettings(response)) {
+        setSettings(response);
+        if (response.anki_db_path) {
+          await fetchProfiles(response.anki_db_path);
+          if (response.profile) {
+            await fetchDecks(response.profile);
+          }
+        }
+      } else {
+        throw new Error("Invalid settings response");
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      setError('Failed to load settings. Please try again.');
+    }
   };
 
-  const handleResetApiKey = () => {
-    // Trigger backend API call to reset API key
-    fetch(`${apiBaseUrl}/anki/reset-api-key`, { method: 'POST' })
-      .then(response => response.json())
-      .then(data => setApiKeySet(data.isSet))
-      .catch(error => console.error('Error resetting API key:', error));
+  const fetchProfiles = async (dbPath: string) => {
+    try {
+      const response: unknown = await window.pywebview.api.get_profiles(dbPath);
+      if (isProfilesResponse(response)) {
+        setProfiles(response.profiles);
+      } else {
+        throw new Error("Invalid profiles response");
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+      setProfiles([]);
+      setError('Failed to load Anki profiles. Please check your Anki database path.');
+    }
   };
+
+  const fetchDecks = async (profile: string) => {
+    try {
+      const response: unknown = await window.pywebview.api.get_decks(profile);
+      if (isDecksResponse(response)) {
+        setDecks(response.decks);
+      } else {
+        throw new Error("Invalid decks response");
+      }
+    } catch (error) {
+      console.error('Error fetching decks:', error);
+      setDecks({});
+      setError('Failed to load Anki decks. Please check your selected profile.');
+    }
+  };
+
+  const handleSelectAnkiPath = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.select_file_path();
+      if (isAnkiPathResponse(response)) {
+        setSettings(prevSettings => ({ 
+          ...prevSettings!,
+          anki_db_path: response.anki_db_path,
+          profile: response.profile,
+          deck_name: response.deck_name
+        }));
+        setProfiles(response.profiles);
+        setDecks(response.decks);
+        setError(null);
+      } else if (typeof response === "object" && response !== null && 'error' in response) {
+        setError(response.error as string);
+      } else {
+        throw new Error("Invalid Anki path response");
+      }
+    } catch (error) {
+      console.error('Error selecting Anki path:', error);
+      setError('Failed to set Anki database path. Please try again.');
+    }
+  };
+
+  const handleProfileChange = async (profile: string) => {
+    if (profile === settings?.profile) return;
+    try {
+      const response: unknown = await window.pywebview.api.set_profile(profile);
+      if (isAnkiPathResponse(response)) {
+        setSettings(prevSettings => ({ 
+          ...prevSettings!, 
+          profile: response.profile,
+          deck_name: response.deck_name
+        }));
+        setDecks(response.decks);
+        setError(null);
+      } else {
+        throw new Error("Invalid profile change response");
+      }
+    } catch (error) {
+      console.error('Error setting profile:', error);
+      setError('Failed to set Anki profile. Please try again.');
+    }
+  };
+
+  const handleDeckChange = async (deckName: string) => {
+    if (deckName === settings?.deck_name) return;
+    try {
+      const response: unknown = await window.pywebview.api.set_deck(deckName);
+      if (typeof response === "object" && response !== null && 'success' in response && response.success) {
+        setSettings(prevSettings => ({ ...prevSettings!, deck_name: deckName }));
+        setError(null);
+      } else {
+        setError('Failed to set Anki deck. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error setting deck:', error);
+      setError('Failed to set Anki deck. Please try again.');
+    }
+  };
+
+  const handleResetApiKey = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.reset_api_key();
+      if (typeof response === "object" && response !== null && 'api_key_set' in response) {
+        setSettings(prevSettings => ({ ...prevSettings!, api_key_set: response.api_key_set as boolean }));
+        setError(null);
+      } else {
+        throw new Error("Invalid API key reset response");
+      }
+    } catch (error) {
+      console.error('Error resetting API key:', error);
+      setError('Failed to reset API key. Please try again.');
+    }
+  };
+
+  if (!settings) {
+    return <div>Loading settings...</div>;
+  }
 
   return (
     <div className="settings-container">
+      {error && <div className="error-message">{error}</div>}
       <div className="settings-item">
         <label>Anki Data Location: </label>
         <input 
           type="text" 
           className="file-path-input" 
-          value={ankiDataLocation} 
+          value={settings.anki_db_path} 
           readOnly 
-          onClick={handleSelectFilePath} 
+          onClick={handleSelectAnkiPath} 
         />
       </div>
-
       <div className="settings-item">
         <label>Anki Profile: </label>
         <select
-          value={selectedProfile}
-          onChange={(e) => setSelectedProfile(e.target.value)}
+          value={settings.profile}
+          onChange={(e) => handleProfileChange(e.target.value)}
         >
-          <option value="">Select Profile</option>
-          {ankiProfiles.map((profile) => (
+          {profiles.map((profile) => (
             <option key={profile} value={profile}>
               {profile}
             </option>
           ))}
         </select>
       </div>
-
       <div className="settings-item">
         <label>Anki Deck: </label>
         <select
-          value={selectedDeck}
-          onChange={(e) => setSelectedDeck(e.target.value)}
+          value={settings.deck_name}
+          onChange={(e) => handleDeckChange(e.target.value)}
         >
-          <option value="">Select Deck</option>
-          {ankiDecks.map((deck) => (
-            <option key={deck} value={deck}>
-              {deck}
+          {Object.entries(decks).map(([name, id]) => (
+            <option key={id} value={name}>
+              {name}
             </option>
           ))}
         </select>
       </div>
-
       <div className="settings-item">
         <button
           className="reset-api-key-button"
           onClick={handleResetApiKey}
-          style={{ backgroundColor: apiKeySet ? 'red' : 'gray' }}
+          style={{ backgroundColor: settings.api_key_set ? 'red' : 'gray' }}
         >
-          {apiKeySet ? '(Re)set API key' : 'Set API key'}
+          {settings.api_key_set ? '(Re)set API key' : 'Set API key'}
         </button>
       </div>
     </div>
