@@ -2,7 +2,6 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from apiUtils.key_manager import get_api_key
 
 class Score(BaseModel):
     score: str = Field(description="either 'yes' or 'no'")
@@ -11,7 +10,7 @@ class Answer(BaseModel):
     answer: str = Field(description="The answer to the question with context and explanation.")
 
 model_id = "meta/llama3-70b-instruct"
-api_key = get_api_key()
+api_key = "PLACEHOLDER" #TODO: GET THIS HERE SOME OTHER WAY
 llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
 def DocumentGrader(question, documents):

@@ -202,19 +202,14 @@ def map_questioning_chunks(state: NoteGraphState):
     return [Send("question_generator", {"questioning_chunk": chunk, "n_questions": state["n_questions"], "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
 
 def map_questions(state: NoteGraphState):
-    print(f"DEDUPLICATED QUESTIONS AFTER QUESTION GENERATION: {state['deduplicated_questions']}")
     return [Send("answer_generator", {"question": question, "retriever": state["retriever"], }) for question in state["deduplicated_questions"]["Questions"]]
 
 def expert_router(state: NoteGraphState):
-    print("-------------- STARTING ROUTING --------------")
     questions_with_answers = state["questions_with_answers"]
     expert = ExpertRouter(questions_with_answers)
-    print("-------------- EXPERT ROUTER DONE --------------")
     routing = []
-    print(f"Expert: {expert}")
     for attr, value in vars(expert).items():
         if value != []:
-            print("-------------- Routing ---------------")
             routing += [Send(str(attr), {"question_with_answer": questions_with_answers[i]}) for i in value]
     if not routing:
         return END

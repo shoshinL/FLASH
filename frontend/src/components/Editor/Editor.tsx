@@ -134,7 +134,7 @@ export function Editor() {
       <button
         className="button"
         onClick={() => {
-          window.pywebview.api.reset_api_key();
+          window.pywebview.api.reset_api_key()
         }}
       >
         Reset API Key

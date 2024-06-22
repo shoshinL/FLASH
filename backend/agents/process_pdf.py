@@ -1,6 +1,5 @@
 from typing import List
 from venv import logger
-from apiUtils.key_manager import get_api_key
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
@@ -24,7 +23,7 @@ def load_pdf(file_path) -> List[Document]:
 
 def get_retrieval_embeddings(documents: List[Document]):
     try:
-        api_key = get_api_key()
+        api_key = "PLACEHOLDER" #TODO get this here some other way
         if not api_key:
             raise ValueError("API key is missing.")
         

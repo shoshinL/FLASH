@@ -39,11 +39,9 @@ def retrieve(state):
     """
     question = state["question"]
 
-    print("--------------------------------GOT QUESTOIN ----------------------------------")
 
     # Retrieval
     documents = state["retriever"][0].invoke(question)
-    print("--------------------------------GOT DOCUMENTS ----------------------------------")
     return {"documents": documents, "question": question, "questions_with_answers": []}
 
 def grade_documents(state):
@@ -96,7 +94,6 @@ def answer_scrubber(state):
     Returns:
         state (dict): The state with the scrubbed answers
     """
-    print("------ SCRUBBING ANSWERS ------")
 
     return {"questions_with_answers": [], "retriever": []}
 
@@ -141,8 +138,6 @@ def grade_hallucination(state):
         if state["hallucinated"]:
             return "answer_scrubber"
         return "generate_answers"
-    print("----------------------DONE WITH RETRIEVAL----------------------")
-    print(f"QUestion with answer: {state['questions_with_answers']}")
     return END
 
 retrieval_graph.set_entry_point("retrieve")

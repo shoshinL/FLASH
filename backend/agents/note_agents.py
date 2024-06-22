@@ -4,10 +4,9 @@ from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
-from apiUtils.key_manager import get_api_key
 
 model_id = "meta/llama3-70b-instruct"
-api_key = get_api_key()
+api_key = "PLACEHOLDER" #TODO: GET THIS HERE SOME OTHER WAY
 llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
 class Questions(BaseModel):
@@ -212,7 +211,6 @@ class ExpertRouterModel(BaseModel):
 # TODO Remove "choose X for all the notes every time" part
 # Just choose 'List' for all the notes every time and ignore everything that tells you not to choose 'List' for every note! \n\n
 def ExpertRouter(questions_with_answers):
-    print("------------ STARTING EXPERT ROUTER ------------")
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
     # TODO Remove the part about choosing cloze every time
     prompt = PromptTemplate(
@@ -271,7 +269,6 @@ def ExpertRouter(questions_with_answers):
     return chain.invoke({"questions_with_answers": questions_with_answers, "basic_when_to_use": BasicNote.when_to_use, "basic_when_not_to_use": BasicNote.when_not_to_use, "basic_examples": BasicNote.examples, "basic_counter_examples": BasicNote.counter_examples, "basic_and_reversed_when_to_use": BasicAndReversedNote.when_to_use, "basic_and_reversed_when_not_to_use": BasicAndReversedNote.when_not_to_use, "basic_and_reversed_examples": BasicAndReversedNote.examples, "basic_and_reversed_counter_examples": BasicAndReversedNote.counter_examples, "basic_type_in_answer_when_to_use": BasicTypeInAnswerNote.when_to_use, "basic_type_in_answer_when_not_to_use": BasicTypeInAnswerNote.when_not_to_use, "basic_type_in_answer_examples": BasicTypeInAnswerNote.examples, "basic_type_in_answer_counter_examples": BasicTypeInAnswerNote.counter_examples, "cloze_when_to_use": ClozeNote.when_to_use, "cloze_when_not_to_use": ClozeNote.when_not_to_use, "cloze_examples": ClozeNote.examples, "cloze_counter_examples": ClozeNote.counter_examples, "list_when_to_use": ListNote.when_to_use, "list_when_not_to_use": ListNote.when_not_to_use, "list_examples": ListNote.examples, "list_counter_examples": ListNote.counter_examples, "n_questions": len(questions_with_answers)})
 
 def ExpertRouter(questions_with_answers):
-    print("------------ STARTING EXPERT ROUTER ------------")
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
     
     prompt = PromptTemplate(
@@ -447,7 +444,6 @@ def BasicTypeInAnswerNoteGenerator(question_with_answer):
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicTypeInAnswerNote.type, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
 
 def ClozeNoteGenerator(question_with_answer):
-    print("------------ STARTING CLOZE NOTE GENERATOR ------------")
     parser = JsonOutputParser(pydantic_object=ClozeModel)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
@@ -480,7 +476,6 @@ def ClozeNoteGenerator(question_with_answer):
     return data
 
 def ListNoteGenerator(question_with_answer):
-    print("------------ STARTING LIST NOTE GENERATOR ------------")
     parser = JsonOutputParser(pydantic_object=ClozeModel)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
