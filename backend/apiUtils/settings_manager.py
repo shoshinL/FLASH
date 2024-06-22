@@ -273,8 +273,12 @@ class SettingsManager:
             "anki_db_path": self.anki_db_path,
             "profile": self.profile,
             "deck_name": self.deck_name,
-            "api_key_set": self.api_key_exists()
-        }
+            "api_key_set": self.api_key_exists(),
+            "anki_data_location_valid": self._is_anki_db_path_valid()
+        }    
+    
+    def _is_anki_db_path_valid(self) -> bool:
+        return self.anki_db_path and os.path.isfile(self.anki_db_path) and self.anki_db_path.endswith('prefs21.db')
 
     def api_key_exists(self) -> bool:
         conn = sqlite3.connect(self.db_path)
@@ -282,11 +286,13 @@ class SettingsManager:
         cursor.execute("SELECT id FROM api_keys WHERE id = 1;")
         key_exists = cursor.fetchone()
         conn.close()
-        return key_exists is not None
-
-    def reset_api_key(self, window) -> None:
-        api_key = self._request_valid_api_key(window)
-        self._upsert_api_key(api_key)
+        return key_exists is not None    
+    
+    def set_api_key(self, api_key: str) -> bool:
+        if api_key.startswith("nvapi-"):
+            self._upsert_api_key(api_key)
+            return True
+        return False
 
     def _upsert_api_key(self, api_key: str) -> None:
         api_key = api_key.strip()
@@ -297,7 +303,7 @@ class SettingsManager:
         INSERT OR REPLACE INTO api_keys (id, encrypted_key) VALUES (1, ?)
         ''', (encrypted_key,))
         conn.commit()
-        conn.close()
+        conn.close()    
 
     def _get_api_key(self) -> str:
         conn = sqlite3.connect(self.db_path)
@@ -311,15 +317,3 @@ class SettingsManager:
             return decrypted_key
         else:
             raise ValueError("API key not found in the database.")
-
-    def _request_valid_api_key(self, window) -> str:
-        while True:
-            api_key = window.evaluate_js('prompt("Please enter your nVidia nim-API key (must start with nvapi-):")')
-            if api_key:
-                api_key = api_key.strip()
-                if api_key.startswith("nvapi-"):
-                    return api_key
-                else:
-                    window.evaluate_js('alert("Invalid API key. The key must start with \'nvapi-\'. Please try again.")')
-            else:
-                window.evaluate_js('alert("No API key entered. Please try again.")')

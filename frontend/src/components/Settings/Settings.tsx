@@ -6,6 +6,7 @@ interface Settings {
   profile: string;
   deck_name: string;
   api_key_set: boolean;
+  anki_data_location_valid: boolean;
 }
 
 interface ProfilesResponse {
@@ -53,11 +54,13 @@ function isAnkiPathResponse(obj: any): obj is AnkiPathResponse {
   );
 }
 
+
 export function Settings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [profiles, setProfiles] = useState<string[]>([]);
   const [decks, setDecks] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>("");
 
   useEffect(() => {
     fetchSettings();
@@ -113,30 +116,6 @@ export function Settings() {
     }
   };
 
-  const handleSelectAnkiPath = async () => {
-    try {
-      const response: unknown = await window.pywebview.api.select_file_path();
-      if (isAnkiPathResponse(response)) {
-        setSettings(prevSettings => ({ 
-          ...prevSettings!,
-          anki_db_path: response.anki_db_path,
-          profile: response.profile,
-          deck_name: response.deck_name
-        }));
-        setProfiles(response.profiles);
-        setDecks(response.decks);
-        setError(null);
-      } else if (typeof response === "object" && response !== null && 'error' in response) {
-        setError(response.error as string);
-      } else {
-        throw new Error("Invalid Anki path response");
-      }
-    } catch (error) {
-      console.error('Error selecting Anki path:', error);
-      setError('Failed to set Anki database path. Please try again.');
-    }
-  };
-
   const handleProfileChange = async (profile: string) => {
     if (profile === settings?.profile) return;
     try {
@@ -174,18 +153,48 @@ export function Settings() {
     }
   };
 
-  const handleResetApiKey = async () => {
+  const handleSelectAnkiPath = async () => {
     try {
-      const response: unknown = await window.pywebview.api.reset_api_key();
-      if (typeof response === "object" && response !== null && 'api_key_set' in response) {
-        setSettings(prevSettings => ({ ...prevSettings!, api_key_set: response.api_key_set as boolean }));
+      const response: unknown = await window.pywebview.api.select_file_path();
+      if (isAnkiPathResponse(response)) {
+        setSettings(prevSettings => ({ 
+          ...prevSettings!,
+          anki_db_path: response.anki_db_path,
+          profile: response.profile,
+          deck_name: response.deck_name,
+          anki_data_location_valid: true
+        }));
+        setProfiles(response.profiles);
+        setDecks(response.decks);
         setError(null);
+      } else if (typeof response === "object" && response !== null && 'error' in response) {
+        setError(response.error as string);
       } else {
-        throw new Error("Invalid API key reset response");
+        throw new Error("Invalid Anki path response");
       }
     } catch (error) {
-      console.error('Error resetting API key:', error);
-      setError('Failed to reset API key. Please try again.');
+      console.error('Error selecting Anki path:', error);
+      setError('Failed to set Anki database path. Please try again.');
+    }
+  };
+
+  const handleSetApiKey = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.set_api_key(apiKey);
+      if (typeof response === "object" && response !== null && 'success' in response) {
+        if (response.success) {
+          setSettings(prevSettings => ({ ...prevSettings!, api_key_set: true }));
+          setError(null);
+          setApiKey("");
+        } else {
+          setError('Invalid API key. Please make sure it starts with "nvapi-".');
+        }
+      } else {
+        throw new Error("Invalid API key set response");
+      }
+    } catch (error) {
+      console.error('Error setting API key:', error);
+      setError('Failed to set API key. Please try again.');
     }
   };
 
@@ -197,7 +206,7 @@ export function Settings() {
     <div className="settings-container">
       {error && <div className="error-message">{error}</div>}
       <div className="settings-item">
-        <label>Anki Data Location: </label>
+        <label>Anki Database File: </label>
         <input 
           type="text" 
           className="file-path-input" 
@@ -233,12 +242,19 @@ export function Settings() {
         </select>
       </div>
       <div className="settings-item">
+        <label>API Key: </label>
+        <input
+          type="text"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="Enter your nVidia nim-API key"
+        />
         <button
-          className="reset-api-key-button"
-          onClick={handleResetApiKey}
-          style={{ backgroundColor: settings.api_key_set ? 'red' : 'gray' }}
+          className="api-key-button"
+          onClick={handleSetApiKey}
+          style={{ backgroundColor: settings.api_key_set ? 'red' : 'darkgrey' }}
         >
-          {settings.api_key_set ? '(Re)set API key' : 'Set API key'}
+          {settings.api_key_set ? 'Reset API Key' : 'Set API Key'}
         </button>
       </div>
     </div>
