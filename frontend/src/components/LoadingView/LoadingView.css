@@ -2,9 +2,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* Changed from center to flex-start */
   height: 100vh;
   text-align: center;
+  padding-top: 20vh; /* Added padding-top to move content higher */
 }
 
 h2 {
