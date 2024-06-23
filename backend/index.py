@@ -131,7 +131,6 @@ class Api:
                 progress += 20
                 update = {"progress": progress, "message": current_step}
                 if current_step == "Finished!":
-                    print(f"CURRENT STATE: {state}")
                     flashcards = state[key]["notes"]
                     filename = os.path.basename(state[key]["documentpath"])
                     update = {
