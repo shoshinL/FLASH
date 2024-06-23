@@ -211,69 +211,6 @@ class ExpertRouterModel(BaseModel):
     Cloze: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'Cloze' Note Type")
     ItemList: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'List' Note Type") # type: ignore
 
-
-"""
-TODO remove
-def ExpertRouter(questions_with_answers, n_questions):
-    parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
-    prompt = PromptTemplate(
-    template=<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-    You are an expert information to flashcard creation router. 
-    You aim to route the questions and answers to the appropriate note type for the user to study. 
-    You have been provided with a list of questions and answers.
-    Make sure you route based on the information to be learned, not how complex or simple the question is. 
-    You should decide which note type each question and answer pair should be assigned to. 
-    Assign each question and answer pair to the appropriate note type. Make sure you assign every single pair! 
-    Every question/answer pair needs to be assigned to a note type! 
-    Be mindful of assigning the questions and answers to the note type fitting them best. 
-    Check every note type for every question and answer pair. 
-    You use the guidelines provided to you for every note type to make your decision. \n
-
-    GUIDELINES: 
-    Basic: {basic_when_to_use} 
-    {basic_when_not_to_use} 
-    {basic_examples} 
-    {basic_counter_examples} \n
-    ------------------------------
-    Basic (and reversed card): {basic_and_reversed_when_to_use} 
-    {basic_and_reversed_when_not_to_use} 
-    {basic_and_reversed_examples} 
-    {basic_and_reversed_counter_examples} \n
-    ------------------------------
-    Basic (type in the answer): {basic_type_in_answer_when_to_use} 
-    {basic_type_in_answer_when_not_to_use} 
-    {basic_type_in_answer_examples} 
-    {basic_type_in_answer_counter_examples} \n
-    ------------------------------
-    Cloze: {cloze_when_to_use} 
-    {cloze_when_not_to_use} 
-    {cloze_examples} 
-    {cloze_counter_examples} \n
-    ------------------------------
-    ItemList: {list_when_to_use}
-    {list_when_not_to_use}
-    {list_examples}
-    {list_counter_examples} \n
-    ------------------------------
-    Here are the questions and answer pairs: 
-    '''
-    {questions_with_answers}
-    '''
-
-    Make sure that you assign every index from 0 {n_questions} to a note type!
-    The sum of the length of all the lists should be {n_questions}!
-    Provide the response in the requested format without any preamble or explanation.
-    Format Instructions: {format_instructions} 
-    <|eot_id|><|start_header_id|>assistant<|end_header_id|>
-    ,
-    #TODO remove: Provide a dict that has the note type and then a list of the INDICES of the questions and answers for that note type in the provided list. 
-    input_variables=["questions_with_answers", "basic_when_to_use", "basic_when_not_to_use", "basic_examples", "basic_counter_examples", "basic_and_reversed_when_to_use", "basic_and_reversed_when_not_to_use", "basic_and_reversed_examples", "basic_and_reversed_counter_examples", "basic_type_in_answer_when_to_use", "basic_type_in_answer_when_not_to_use", "basic_type_in_answer_examples", "basic_type_in_answer_counter_examples", "cloze_when_to_use", "cloze_when_not_to_use", "cloze_examples", "cloze_counter_examples", "list_when_to_use", "list_when_not_to_use", "list_examples", "list_counter_examples", "n_questions"],
-    partial_variables={"format_instructions": parser.get_format_instructions()},
-    )
-    chain = prompt | llm | parser
-    return chain.invoke({"questions_with_answers": questions_with_answers, "basic_when_to_use": BasicNote.when_to_use, "basic_when_not_to_use": BasicNote.when_not_to_use, "basic_examples": BasicNote.examples, "basic_counter_examples": BasicNote.counter_examples, "basic_and_reversed_when_to_use": BasicAndReversedNote.when_to_use, "basic_and_reversed_when_not_to_use": BasicAndReversedNote.when_not_to_use, "basic_and_reversed_examples": BasicAndReversedNote.examples, "basic_and_reversed_counter_examples": BasicAndReversedNote.counter_examples, "basic_type_in_answer_when_to_use": BasicTypeInAnswerNote.when_to_use, "basic_type_in_answer_when_not_to_use": BasicTypeInAnswerNote.when_not_to_use, "basic_type_in_answer_examples": BasicTypeInAnswerNote.examples, "basic_type_in_answer_counter_examples": BasicTypeInAnswerNote.counter_examples, "cloze_when_to_use": ClozeNote.when_to_use, "cloze_when_not_to_use": ClozeNote.when_not_to_use, "cloze_examples": ClozeNote.examples, "cloze_counter_examples": ClozeNote.counter_examples, "list_when_to_use": ListNote.when_to_use, "list_when_not_to_use": ListNote.when_not_to_use, "list_examples": ListNote.examples, "list_counter_examples": ListNote.counter_examples, "n_questions": len(questions_with_answers)})
-"""
-
 def ExpertRouter(questions_with_answers):
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
