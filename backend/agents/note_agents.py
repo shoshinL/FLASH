@@ -1,12 +1,15 @@
 from typing import List, Type
-
 from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
+from langchain.output_parsers import OutputFixingParser
+from langchain.schema import OutputParserException
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
+from apiUtils.settings_manager import SettingsManager
+
 model_id = "meta/llama3-70b-instruct"
-api_key = "PLACEHOLDER" #TODO: GET THIS HERE SOME OTHER WAY
+api_key = SettingsManager.api_key()
 llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
 class Questions(BaseModel):
@@ -131,6 +134,7 @@ ListNote = NotePromptModel(
 
 def QuestionGenerator(questioning_chunk, n_questions, questioning_context):
     parser = JsonOutputParser(pydantic_object=Questions)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a question generating study assistant.
@@ -156,23 +160,24 @@ def QuestionGenerator(questioning_chunk, n_questions, questioning_context):
 
     {format_instructions}
     <|eot_id|><|start_header_id|>user<|end_header_id|>
-    questioning context: \n
+    questioning context:
     '''
     {questioning_context}\n
-    '''\n
+    '''
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>
     """,
     input_variables=["document", "n_questions", "questioning_context"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
 
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     result = chain.invoke({"document": questioning_chunk, "n_questions": n_questions, "questioning_context": questioning_context})
     
     return result
 
 def QuestionsDeduplicator(questions, n_questions):
     parser = JsonOutputParser(pydantic_object=Questions)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a question deduplicator. 
@@ -196,10 +201,9 @@ def QuestionsDeduplicator(questions, n_questions):
     input_variables=["questions", "n_questions"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return chain.invoke({"questions": questions, "n_questions": n_questions})
 
-#Should model a dict that has the note type and then a list of the INDICES of the questions and answers for that note type
 class ExpertRouterModel(BaseModel):
     Basic: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'Basic' Note Type")
     BasicAndReversed: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'Basic (and reversed card)' Note Type")
@@ -208,16 +212,15 @@ class ExpertRouterModel(BaseModel):
     ItemList: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'List' Note Type") # type: ignore
 
 
-# TODO Remove "choose X for all the notes every time" part
-# Just choose 'List' for all the notes every time and ignore everything that tells you not to choose 'List' for every note! \n\n
-def ExpertRouter(questions_with_answers):
+"""
+TODO remove
+def ExpertRouter(questions_with_answers, n_questions):
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
-    # TODO Remove the part about choosing cloze every time
     prompt = PromptTemplate(
-    template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+    template=<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are an expert information to flashcard creation router. 
     You aim to route the questions and answers to the appropriate note type for the user to study. 
-    You have been provided with a list of questions and answers. These contain more information than the user needs to study. 
+    You have been provided with a list of questions and answers.
     Make sure you route based on the information to be learned, not how complex or simple the question is. 
     You should decide which note type each question and answer pair should be assigned to. 
     Assign each question and answer pair to the appropriate note type. Make sure you assign every single pair! 
@@ -257,23 +260,28 @@ def ExpertRouter(questions_with_answers):
     {questions_with_answers}
     '''
 
-    Provide a dict that has the note type and then a list of the INDICES of the questions and answers for that note type in the provided list. 
-    Make sure that you assign every index from 0 to {n_questions} to a note type!
+    Make sure that you assign every index from 0 {n_questions} to a note type!
+    The sum of the length of all the lists should be {n_questions}!
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions} 
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>
-    """,
+    ,
+    #TODO remove: Provide a dict that has the note type and then a list of the INDICES of the questions and answers for that note type in the provided list. 
     input_variables=["questions_with_answers", "basic_when_to_use", "basic_when_not_to_use", "basic_examples", "basic_counter_examples", "basic_and_reversed_when_to_use", "basic_and_reversed_when_not_to_use", "basic_and_reversed_examples", "basic_and_reversed_counter_examples", "basic_type_in_answer_when_to_use", "basic_type_in_answer_when_not_to_use", "basic_type_in_answer_examples", "basic_type_in_answer_counter_examples", "cloze_when_to_use", "cloze_when_not_to_use", "cloze_examples", "cloze_counter_examples", "list_when_to_use", "list_when_not_to_use", "list_examples", "list_counter_examples", "n_questions"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
     chain = prompt | llm | parser
     return chain.invoke({"questions_with_answers": questions_with_answers, "basic_when_to_use": BasicNote.when_to_use, "basic_when_not_to_use": BasicNote.when_not_to_use, "basic_examples": BasicNote.examples, "basic_counter_examples": BasicNote.counter_examples, "basic_and_reversed_when_to_use": BasicAndReversedNote.when_to_use, "basic_and_reversed_when_not_to_use": BasicAndReversedNote.when_not_to_use, "basic_and_reversed_examples": BasicAndReversedNote.examples, "basic_and_reversed_counter_examples": BasicAndReversedNote.counter_examples, "basic_type_in_answer_when_to_use": BasicTypeInAnswerNote.when_to_use, "basic_type_in_answer_when_not_to_use": BasicTypeInAnswerNote.when_not_to_use, "basic_type_in_answer_examples": BasicTypeInAnswerNote.examples, "basic_type_in_answer_counter_examples": BasicTypeInAnswerNote.counter_examples, "cloze_when_to_use": ClozeNote.when_to_use, "cloze_when_not_to_use": ClozeNote.when_not_to_use, "cloze_examples": ClozeNote.examples, "cloze_counter_examples": ClozeNote.counter_examples, "list_when_to_use": ListNote.when_to_use, "list_when_not_to_use": ListNote.when_not_to_use, "list_examples": ListNote.examples, "list_counter_examples": ListNote.counter_examples, "n_questions": len(questions_with_answers)})
+"""
 
 def ExpertRouter(questions_with_answers):
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
-    
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
         template="""system
-        You are an expert in routing information to flashcard note types. Your goal is to assign each question and answer pair to the most suitable note type for effective study. You have been provided with a list of questions and answers, and your task is to determine the appropriate note type for each pair based on the information to be learned.
+        You are an expert in routing question-answer pairs to flashcard note types.
+        Your goal is to assign each question and answer pair to the most suitable note type for effective study.
+        You have been provided with a list of questions and answers, and your task is to determine the appropriate note type for each pair based on the information to be learned.
 
         GUIDELINES:
 
@@ -308,12 +316,14 @@ def ExpertRouter(questions_with_answers):
             2. Assign each pair to one of the following note types: Basic, BasicAndReversed, BasicTypeInAnswer, Cloze, or ItemList.
             3. Ensure every pair is assigned a note type based on the guidelines provided.
 
-        Provide a dict with the note type as the key and a list of the indices of the question and answer pairs for that note type.
-
         Here are the questions and answer pairs:
         '''
         {questions_with_answers}
         '''
+
+        Make sure that you assign every index from 0 {n_questions} to a note type!
+        The sum of the length of all the lists should be {n_questions}!
+        Provide the response in the requested format without any preamble or explanation.
 
         FORMAT:
         {format_instructions}
@@ -326,12 +336,13 @@ def ExpertRouter(questions_with_answers):
             "basic_type_in_answer_when_not_to_use", "basic_type_in_answer_examples", 
             "basic_type_in_answer_counter_examples", "cloze_when_to_use", "cloze_when_not_to_use", 
             "cloze_examples", "cloze_counter_examples", "list_when_to_use", 
-            "list_when_not_to_use", "list_examples", "list_counter_examples"
+            "list_when_not_to_use", "list_examples", "list_counter_examples",
+            "n_questions"
         ],
         partial_variables={"format_instructions": parser.get_format_instructions()},
     )
     
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     
     return chain.invoke({
         "questions_with_answers": questions_with_answers, 
@@ -354,11 +365,13 @@ def ExpertRouter(questions_with_answers):
         "list_when_to_use": ListNote.when_to_use, 
         "list_when_not_to_use": ListNote.when_not_to_use, 
         "list_examples": ListNote.examples, 
-        "list_counter_examples": ListNote.counter_examples
+        "list_counter_examples": ListNote.counter_examples,
+        "n_questions": len(questions_with_answers)
     })
 
 def BasicNoteGenerator(question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicModel)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)    
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -377,16 +390,19 @@ def BasicNoteGenerator(question_with_answer):
     Flashcard Creation Guidelines: {how_to_use}\n
     Examples: {examples} \n
     Counter Examples: {counter_examples} \n
+
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicNote.type, "how_to_use": BasicNote.how_to_use, "examples": BasicNote.examples, "counter_examples": BasicNote.counter_examples})
 
 def BasicAndReversedNoteGenerator(question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicAndReversedModel)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -406,16 +422,19 @@ def BasicAndReversedNoteGenerator(question_with_answer):
     Flashcard Creation Guidelines: {how_to_use}\n
     Examples: {examples} \n
     Counter Examples: {counter_examples} \n
+
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicAndReversedNote.type, "how_to_use": BasicAndReversedNote.how_to_use, "examples": BasicAndReversedNote.examples, "counter_examples": BasicAndReversedNote.counter_examples})
 
 def BasicTypeInAnswerNoteGenerator(question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicTypeInAnswerModel)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -435,16 +454,19 @@ def BasicTypeInAnswerNoteGenerator(question_with_answer):
     Flashcard Creation Guidelines: {how_to_use}\n
     Examples: {examples} \n
     Counter Examples: {counter_examples} \n
+
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicTypeInAnswerNote.type, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
 
 def ClozeNoteGenerator(question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -465,18 +487,21 @@ def ClozeNoteGenerator(question_with_answer):
     Flashcard Creation Guidelines: {how_to_use}\n
     Examples: {examples} \n
     Counter Examples: {counter_examples} \n
+
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     data = chain.invoke({"question_with_answer": question_with_answer, "type": ClozeNote.type, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
     data["Back Extra"] = data.pop("BackExtra")
     return data
 
 def ListNoteGenerator(question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
+    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -497,12 +522,14 @@ def ListNoteGenerator(question_with_answer):
     Flashcard Creation Guidelines: {how_to_use}\n
     Examples: {examples} \n
     Counter Examples: {counter_examples} \n
+
+    Provide the response in the requested format without any preamble or explanation.
     Format Instructions: {format_instructions}
     <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     data = chain.invoke({"question_with_answer": question_with_answer, "type": ListNote.type, "how_to_use": ListNote.how_to_use, "examples": ListNote.examples, "counter_examples": ListNote.counter_examples})
     data["Back Extra"] = data.pop("BackExtra")
     return data

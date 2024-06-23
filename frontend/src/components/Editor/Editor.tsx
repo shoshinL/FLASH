@@ -75,17 +75,20 @@ export function Editor({ onGenerateStart }: EditorProps) {
 
   const handleGenerateCards = async () => {
     if (!file) {
-      //TODO: hier den guten Alert nutzen
-      window.pywebview.api.show_alert("Please select a .pdf file for the flashcards.");
+      window.pywebview.api.show_alert("Please select a .pdf file for the flashcards!");
+      return;
+    }
+
+    const settings_valid = await window.pywebview.api.valid_settings();
+    if (!settings_valid) {
       return;
     }
 
     onGenerateStart();
     try {
-      await window.pywebview.api.generate_flashcards_test(content, filePath, cardAmount);
+      await window.pywebview.api.generate_flashcards(content, filePath, cardAmount);
     } catch (error) {
       console.error("Error generating flashcards:", error);
-      // Error handling is now managed in the App component
     }
   }
 

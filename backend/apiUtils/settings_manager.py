@@ -3,6 +3,8 @@ import os
 import sys
 from typing import Dict, List, Any
 from cryptography.fernet import Fernet 
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+
 from ankiUtils.collection_manager import AnkiCollectionManager
 from ankiUtils.db_access import get_profiles, get_sync_auth
 from anki.errors import DBError
@@ -16,7 +18,6 @@ class SettingsManager:
     profile: str
     deck_name: str
     collection_manager: AnkiCollectionManager
-    api_key: str
     decks: Dict[str, int]
     profiles: List[str]
 
@@ -28,7 +29,7 @@ class SettingsManager:
         if not self._anki_db_path_exists():
             try:
                 default_anki_db_path = self._try_get_default_anki_db_path()
-                self._upsert_anki_db_path(default_anki_db_path)
+                self.upsert_anki_db_path(default_anki_db_path)
                 self.anki_db_path = default_anki_db_path
             except FileNotFoundError:
                 self.anki_db_path = ""
@@ -38,7 +39,7 @@ class SettingsManager:
         if self.anki_db_path and not self._profile_exists():
             profiles = self.get_profiles(self.anki_db_path)
             if profiles:
-                self._upsert_profile(profiles[0])
+                self.upsert_profile(profiles[0])
                 self.profiles = profiles
                 self.profile = profiles[0]
             else:
@@ -55,7 +56,7 @@ class SettingsManager:
             if not self._deck_name_exists():
                 if self.decks:
                     deck_name = list(self.decks.keys())[0]
-                    self._upsert_deck_name(deck_name)
+                    self.upsert_deck_name(deck_name)
                     self.deck_name = deck_name
                 else:
                     self.deck_name = "No decks found"
@@ -163,8 +164,6 @@ class SettingsManager:
     def get_decks(self, profile: str) -> Dict[str, int]:
         if not self.anki_db_path or not profile:
             return {}
-        profile_path = os.path.join(os.path.dirname(self.anki_db_path), profile)
-        sync_auth = get_sync_auth(self.anki_db_path, profile)
         try:
             collection_manager = self.collection_manager
             return collection_manager.get_decks()
@@ -175,7 +174,7 @@ class SettingsManager:
             print(f"An unexpected error occurred: {str(e)}")
             return {"Error accessing Anki collection": -1}
 
-    def _upsert_anki_db_path(self, path: str) -> Dict[str, Any]:
+    def upsert_anki_db_path(self, path: str) -> Dict[str, Any]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -185,31 +184,37 @@ class SettingsManager:
         conn.close()
 
         self.anki_db_path = path
-        
-        profiles = self.get_profiles(path)
-        if profiles:
-            self._upsert_profile(profiles[0])
-            self.profile = profiles[0]
-        else:
-            self.profile = "No profiles found"
-        
-        decks = self.get_decks(self.profile)
-        if decks:
-            first_deck_name = list(decks.keys())[0]
-            self._upsert_deck_name(first_deck_name)
-            self.deck_name = first_deck_name
-        else:
-            self.deck_name = "No decks found"
-        
-        return {
-            "anki_db_path": path,
-            "profiles": profiles,
-            "profile": self.profile,
-            "decks": decks,
-            "deck_name": self.deck_name
-        }
 
-    def _upsert_profile(self, profile: str) -> Dict[str, Any]:
+        if self._is_anki_db_path_valid():
+            profiles = self.get_profiles(path)
+            if profiles:
+                self.upsert_profile(profiles[0])
+                self.profile = profiles[0]
+                profile_path = os.path.join(os.path.dirname(self.anki_db_path), self.profile)
+                sync_auth = get_sync_auth(self.anki_db_path, self.profile)
+                self.collection_manager = AnkiCollectionManager(profile_path, sync_auth)
+                decks = self.get_decks(self.profile)
+                if decks:
+                    first_deck_name = list(decks.keys())[0]
+                    self.upsert_deck_name(first_deck_name)
+                    self.deck_name = first_deck_name
+                else:
+                    self.deck_name = "No decks found"
+            else:
+                self.profile = "No profiles found"
+                self.deck_name = "No decks found"
+            
+            return {
+                "anki_db_path": path,
+                "profiles": profiles,
+                "profile": self.profile,
+                "decks": decks,
+                "deck_name": self.deck_name
+            }
+        else:
+            self.anki_db_path = ""
+
+    def upsert_profile(self, profile: str) -> Dict[str, Any]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -223,7 +228,7 @@ class SettingsManager:
         decks = self.get_decks(profile)
         if decks:
             first_deck_name = list(decks.keys())[0]
-            self._upsert_deck_name(first_deck_name)
+            self.upsert_deck_name(first_deck_name)
             self.deck_name = first_deck_name
         else:
             self.deck_name = "No decks found"
@@ -234,7 +239,7 @@ class SettingsManager:
             "deck_name": self.deck_name
         }
 
-    def _upsert_deck_name(self, deck_name: str) -> None:
+    def upsert_deck_name(self, deck_name: str) -> None:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -290,8 +295,13 @@ class SettingsManager:
     
     def set_api_key(self, api_key: str) -> bool:
         if api_key.startswith("nvapi-"):
-            self._upsert_api_key(api_key)
-            return True
+            try:
+                model = ChatNVIDIA(model="meta/llama3-70b-instruct", api_key=api_key)
+                model.invoke("Hello, world!")
+                self._upsert_api_key(api_key)
+                return True
+            except Exception:
+                return False
         return False
 
     def _upsert_api_key(self, api_key: str) -> None:
@@ -304,9 +314,33 @@ class SettingsManager:
         ''', (encrypted_key,))
         conn.commit()
         conn.close()    
+    
+    def add_generated_cards_to_deck(self, filename: str, notes: List[Dict[str, str]]) -> None:
+        if not self.collection_manager:
+            return
+        deck_id = self.decks.get(self.deck_name)
+        if deck_id:
+            self.collection_manager.add_notes_to_deck(filename, notes, deck_id)
+            try:
+                self.collection_manager.sync()
+            except Exception as e:
+                print(f"Error syncing Anki collection: {e}")
 
-    def _get_api_key(self) -> str:
-        conn = sqlite3.connect(self.db_path)
+    #TODO: Do this properly with a settings manager and hand over the api key to the graphs in a different way
+    @staticmethod
+    def api_key() -> str:
+        if sys.platform == 'win32':
+            app_data_dir = os.path.join(os.environ['APPDATA'], 'FLASH for Anki')
+        elif sys.platform == 'darwin':
+            app_data_dir = os.path.join(os.path.expanduser('~/Library/Application Support/'), 'FLASH for Anki')
+        else:
+            app_data_dir = os.path.join(os.path.expanduser('~'), '.FLASH for Anki')
+
+        if not os.path.exists(app_data_dir):
+            os.makedirs(app_data_dir)
+
+        db_path = os.path.join(app_data_dir, 'storage.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('SELECT encrypted_key FROM api_keys WHERE id = 1')
         result = cursor.fetchone()

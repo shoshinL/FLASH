@@ -58,7 +58,6 @@ def grade_documents(state):
     documents = state["documents"]
     filtered_documents = []
     for document in documents:
-        #TODO
         score = DocumentGrader(question, document)
         grade = score["score"]
         if grade.lower() == "yes":

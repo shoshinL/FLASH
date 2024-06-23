@@ -11,10 +11,11 @@ interface Flashcard {
 
 interface ResultsViewProps {
   results: Flashcard[];
+  filename: string;
   onReset: () => void;
 }
 
-export function ResultsView({ results, onReset }: ResultsViewProps) {
+export function ResultsView({ results, filename, onReset }: ResultsViewProps) {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [acceptedCards, setAcceptedCards] = useState<Flashcard[]>([]);
@@ -70,13 +71,13 @@ export function ResultsView({ results, onReset }: ResultsViewProps) {
     try {
       const profile = await window.pywebview.api.get_selected_profile();
       const deck = await window.pywebview.api.get_selected_deck();
-      setSavingStatus(`Saving your cards to Anki Profile ${profile} and Deck: ${deck}`);
+      setSavingStatus(`Saving your cards from "${filename}" to Anki Profile ${profile} and Deck: ${deck}`);
       
-      const result = await window.pywebview.api.save_accepted_flashcards(acceptedCards);
+      const result = await window.pywebview.api.save_accepted_flashcards(acceptedCards, filename);
       if (result === "Success!!") {
-        setSavingStatus("Flashcards successfully saved to Anki!");
+        setSavingStatus(`Flashcards from "${filename}" successfully saved to Anki!`);
       } else {
-        setSavingStatus("ERROR: Couldn't save flashcards to Anki");
+        setSavingStatus(`ERROR: Couldn't save flashcards from "${filename}" to Anki`);
       }
       
       setTimeout(() => {
@@ -84,7 +85,7 @@ export function ResultsView({ results, onReset }: ResultsViewProps) {
       }, 3000);
     } catch (error) {
       console.error("Error saving flashcards:", error);
-      setSavingStatus("ERROR: Couldn't save flashcards to Anki");
+      setSavingStatus(`ERROR: Couldn't save flashcards from "${filename}" to Anki`);
       setTimeout(() => {
         onReset();
       }, 3000);

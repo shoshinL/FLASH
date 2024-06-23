@@ -32,11 +32,11 @@ class AnkiCollectionManager:
         return self.col.models.field_names(model)
 
     def _generate_note(self, generated_note: dict, filename: str) -> Note:
-        id = self.get_model_id(generated_note["Type"])
-        model = self.get_model(id)
+        id = self._get_model_id(generated_note["Type"])
+        model = self._get_model(id)
         note = Note(self.col, model)
 
-        fields = self.get_model_fields(model)
+        fields = self._get_model_fields(model)
 
         #validate that the generated note matches the model
         for field in fields:
@@ -52,17 +52,12 @@ class AnkiCollectionManager:
     def _add_note(self, deck_id: int, note: Note) -> None:
         self.col.add_note(note, deck_id)
 
-    def add_notes_from_graph_to_deck(self, graphState: Dict, deck_id: int) -> None:
-        documentpath = graphState["documentpath"]
-        filename = os.path.basename(documentpath)
-        notes = graphState["notes"]
-
+    def add_notes_to_deck(self, filename: str, notes: List[Dict[str, str]], deck_id: int) -> None:
         for note in notes:
-            note = self.generate_note(note, filename)
+            note = self._generate_note(note, filename)
             if note is not None:
-                self.add_note(deck_id, note)
+                self._add_note(deck_id, note)
 
-    #TODO: This should trigger if the window is closed => Implement with hook.
     def sync(self):
         self.col.close_for_full_sync()
         self.col.sync_collection(self.sync_auth, False)

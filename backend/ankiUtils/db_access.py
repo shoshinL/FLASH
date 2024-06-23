@@ -3,7 +3,6 @@ from typing import List
 import pickle
 from anki.sync import SyncAuth
 
-# TODO move these to settings_manager
 def get_profiles(anki_db_path: str) -> List[str]:
     conn = sqlite3.connect(anki_db_path)
     cursor = conn.cursor()

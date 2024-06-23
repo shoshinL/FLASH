@@ -7,25 +7,31 @@ from anki.errors import DBError
 from apiUtils.settings_manager import SettingsManager
 from agents.note_graph import graph
 
-def custom_alert(message) -> str:
+def custom_alert(messages, display_duration=7000) -> str:
+    # Convert messages list into a JSON string to handle special characters and maintain structure
+    messages_json = json.dumps(messages)
     js_code = f"""
-    var alertDiv = document.createElement('div');
-    alertDiv.style.position = 'fixed';
-    alertDiv.style.top = '20px';
-    alertDiv.style.left = '50%';
-    alertDiv.style.transform = 'translateX(-50%)';
-    alertDiv.style.backgroundColor = '#f8d7da';
-    alertDiv.style.color = '#721c24';
-    alertDiv.style.padding = '10px';
-    alertDiv.style.borderRadius = '5px';
-    alertDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-    alertDiv.style.zIndex = '9999';
-    alertDiv.innerHTML = '{message.replace("'", "\\'")}';
-    document.body.appendChild(alertDiv);
-    setTimeout(function() {{ alertDiv.remove(); }}, 5000);
+    var messages = {messages_json};
+    messages.forEach(function(message, index) {{
+        var alertDiv = document.createElement('div');
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = (20 + 60 * index) + 'px'; // Offset each alert
+        alertDiv.style.left = '50%';
+        alertDiv.style.transform = 'translateX(-50%)';
+        alertDiv.style.backgroundColor = '#f8d7da';
+        alertDiv.style.color = '#721c24';
+        alertDiv.style.padding = '10px';
+        alertDiv.style.borderRadius = '5px';
+        alertDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        alertDiv.style.zIndex = '10000' + index; // Ensure each alert is above the previous
+        alertDiv.innerHTML = message;
+        document.body.appendChild(alertDiv);
+        setTimeout(function() {{ alertDiv.remove(); }}, {display_duration} + 1000 * index); // Staggered removal
+    }});
     """
     return js_code
 
+# Example usage
 def check_settings(window):
     settings = settings_manager.get_settings()
     alert_messages = []
@@ -35,10 +41,19 @@ def check_settings(window):
         alert_messages.append("Please select a valid Anki database file (prefs21.db) in the settings.")
     
     if alert_messages:
-        window.evaluate_js(custom_alert("\n".join(alert_messages)))
+        window.evaluate_js(custom_alert(alert_messages, 7000))
+        return False
+
+    return True
 
 
 class Api:
+    def show_alert(self, message):
+        webview.windows[0].evaluate_js(custom_alert([message], 7000))
+
+    def valid_settings(self):
+        return check_settings(webview.windows[0])
+
     def select_file(self):
         file_types = ('PDF Files (*.pdf)',)
         result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, file_types=file_types, allow_multiple=False)
@@ -51,68 +66,40 @@ class Api:
         # This is a placeholder and should be implemented based on your specific requirements
         print(f"Content: {content}, File path: {file_path}, Card amount: {card_amount}")
         return "Card creation not implemented"
-    
-    def generate_flashcards_test(self, content, file_path, card_amount):
-        def generate_updates():
-            total_steps = 5
-            flashcard_types = ['Basic', 'Basic (and reversed card)', 'Basic (type in the answer)', 'Cloze']
-            
-            for step in range(1, total_steps + 1):
-                progress = (step / total_steps) * 100
-                if step == 1:
-                    yield {"progress": progress, "message": "Processing document..."}
-                elif step == 2:
-                    yield {"progress": progress, "message": "Analyzing content..."}
-                elif step == 3:
-                    yield {"progress": progress, "message": "Generating flashcards..."}
-                elif step == 4:
-                    yield {"progress": progress, "message": "Finalizing results..."}
-                else:
-                    flashcards = []
-                    for i in range(1, int(card_amount) + 1):
-                        card_type = random.choice(flashcard_types)
-                        if card_type == 'Basic':
-                            flashcards.append({
-                                "Type": "Basic",
-                                "Front": f"Question {i} from {content}",
-                                "Back": f"Answer {i} for {file_path}"
-                            })
-                        elif card_type == 'Basic (and reversed card)':
-                            flashcards.append({
-                                "Type": "Basic (and reversed card)",
-                                "Front": f"Term {i} from {content}",
-                                "Back": f"Definition {i} for {file_path}"
-                            })
-                        elif card_type == 'Basic (type in the answer)':
-                            flashcards.append({
-                                "Type": "Basic (type in the answer)",
-                                "Front": f"Type the answer for Question {i} from {content}",
-                                "Back": f"Answer{i}"
-                            })
-                        elif card_type == 'Cloze':
-                            flashcards.append({
-                                "Type": "Cloze",
-                                "Text": f"{{{{c1::{content}}}}} is related to {{{{c2::{file_path}}}}} in concept {i}",
-                                "BackExtra": f"Additional info for concept {i}"
-                            })
-                    
-                    results = {"flashcards": flashcards}
-                    yield {"progress": progress, "message": "Complete!", "result": results}
-                
-                time.sleep(1)  # Simulate processing time
-
-        for update in generate_updates():
-            webview.windows[0].evaluate_js(f"window.dispatchEvent(new CustomEvent('backendUpdate', {{detail: {json.dumps(update)}}}));")
         
-        return "Flashcard generation test completed"
+    def generate_flashcards(self, content, file_path, card_amount):
+        last_step = ""
+        progress = 0
 
-    def save_accepted_flashcards(self, flashcards):
+        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}, debug=True):
+            key = next(iter(state))
+            try:
+                current_step = state[key]["current_step"]
+            except:
+                continue
+
+            if current_step != last_step:
+                last_step = current_step
+                progress += 20
+                update = {"progress": progress, "message": current_step}
+                if current_step == "Finished!":
+                    print(f"CURRENT STATE: {state}")
+                    flashcards = state[key]["notes"]
+                    filename = os.path.basename(state[key]["documentpath"])
+                    update = {
+                        "progress": 100,
+                        "message": "Complete!",
+                        "result": {"flashcards":flashcards, "filename":filename}
+                    }
+                webview.windows[0].evaluate_js(f"window.dispatchEvent(new CustomEvent('backendUpdate', {{detail: {json.dumps(update)}}}));")
+
+        return "Flashcard generation completed"
+
+    def save_accepted_flashcards(self, flashcards, filename):
         if not flashcards:
             return "ERROR"
         try:
-            print(f"Accepted flashcards: {flashcards}")
-            # Here, you would implement the actual saving logic to Anki
-            # For now, we'll just simulate a successful save
+            settings_manager.add_generated_cards_to_deck(filename, flashcards)
             return "Success!!"
         except Exception as e:
             print(f"Error saving flashcards: {e}")
@@ -139,14 +126,14 @@ class Api:
         file_types = ('Database Files (*.db)',)
         result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=file_types)
         if result and result[0]:
-            return settings_manager._upsert_anki_db_path(result[0])
+            return settings_manager.upsert_anki_db_path(result[0])
         return {"error": "No file selected"}
 
     def set_profile(self, profile):
-        return settings_manager._upsert_profile(profile)
+        return settings_manager.upsert_profile(profile)
 
     def set_deck(self, deck_name):
-        settings_manager._upsert_deck_name(deck_name)
+        settings_manager.upsert_deck_name(deck_name)
         return {"success": True, "deck_name": deck_name}
 
     def set_api_key(self, api_key):

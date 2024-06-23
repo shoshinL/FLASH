@@ -113,7 +113,7 @@ def question_deduplicator(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
-    step = "Generating Answers..."
+    step = "Starting Answer Generation..."
 
     return {"deduplicated_questions": deduplicated_questions, "current_step": step}
 
@@ -182,19 +182,33 @@ def generate_list(state: NoteGeneratorState):
     notes = ListNoteGenerator(state["question_with_answer"])
     return {"notes": [notes]}
 
+def finish(state: NoteGraphState):
+    """
+    Finishes the graph.
+
+    Args:
+        state (dict): The current state of the graph
+
+    Returns:
+        state (dict): The updated state of the graph
+    """
+    notes = state["notes"]
+    documentpath = state["documentpath"]
+    return {"current_step": "Finished!", "notes": notes, "documentpath": documentpath}
+
 note_graph = StateGraph(NoteGraphState)
 note_graph.add_node("start", lambda state: {"current_step": "Loading Document..."})
 note_graph.add_node("document_loader", document_loader)
 note_graph.add_node("question_generator", question_generator)
 note_graph.add_node("question_deduplicator", question_deduplicator)
 note_graph.add_node("answer_generator", retrieval_graph.compile())
-note_graph.add_node("generated_answers_state_updater", lambda state: {"current_step": "Generating Cards..."})
+note_graph.add_node("generated_answers_state_updater", lambda state: {"current_step": "Routing to Experts for Card Generation..."})
 note_graph.add_node("Basic", generate_basic)
 note_graph.add_node("BasicAndReversed", generate_basic_and_reversed)
 note_graph.add_node("BasicTypeInAnswer", generate_basic_type_in_answer)
 note_graph.add_node("Cloze", generate_cloze)
 note_graph.add_node("ItemList", generate_list)
-note_graph.add_node("finish", lambda state: {"current_step": "Finished!"})
+note_graph.add_node("finish", finish)
 
 
 ### Edges
@@ -226,6 +240,6 @@ note_graph.add_edge("Basic", "finish")
 note_graph.add_edge("BasicAndReversed", "finish")
 note_graph.add_edge("BasicTypeInAnswer", "finish")
 note_graph.add_edge("Cloze", "finish")
-note_graph.set_finish_point("finish")
+note_graph.add_edge("finish", END)
 
 graph = note_graph.compile()

@@ -14,18 +14,23 @@ interface Flashcard {
   BackExtra?: string;
 }
 
+interface Results {
+  flashcards: Flashcard[];
+  filename: string;
+}
+
 function App() {
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({ progress: 0, message: "" });
-  const [results, setResults] = useState<Flashcard[] | null>(null);
+  const [results, setResults] = useState<Results | null>(null);
 
   useEffect(() => {
     const handleBackendUpdate = (event: CustomEvent) => {
       const { progress, message, result } = event.detail;
       if (result) {
         console.log('Received result from backend:', result);
-        finishLoading(result.flashcards);
+        finishLoading(result);
       } else {
         updateLoadingStatus(progress, message);
       }
@@ -53,7 +58,7 @@ function App() {
     setLoadingStatus({ progress, message });
   };
 
-  const finishLoading = (result: Flashcard[]) => {
+  const finishLoading = (result: Results) => {
     console.log('Finishing loading with result:', result);
     setIsLoading(false);
     setResults(result);
@@ -80,7 +85,7 @@ function App() {
       ) : isLoading ? (
         <LoadingView status={loadingStatus} />
       ) : results ? (
-        <ResultsView results={results} onReset={resetResults} />
+        <ResultsView results={results.flashcards} filename={results.filename} onReset={resetResults} />
       ) : (
         <>
           <Heading />
