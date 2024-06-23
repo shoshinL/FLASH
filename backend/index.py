@@ -119,7 +119,7 @@ class Api:
         last_step = ""
         progress = 0
 
-        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}, debug=True):
+        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}):
             key = next(iter(state))
             try:
                 current_step = state[key]["current_step"]
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     try:
         settings_manager = SettingsManager()
         window.events.loaded += lambda: check_settings(window)
-        webview.start(debug=True)
+        webview.start()
     except DBError:
         webview.start(anki_close_dialog, window)        
 
