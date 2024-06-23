@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import "./Editor.css";
 import fileIcon from "../../assets/file-import-solid.svg";
 import pdfFileIcon from "../../assets/file-pdf-solid.svg";
@@ -9,7 +9,11 @@ interface FileWithPath extends File {
   path?: string;
 }
 
-export function Editor() {
+interface EditorProps {
+  onGenerateStart: () => void;
+}
+
+export function Editor({ onGenerateStart }: EditorProps) {
   const [content, saveContent] = useState("");
   const [file, setFile] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -18,10 +22,12 @@ export function Editor() {
   const fileUploadRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = () => {
-    window.pywebview.api.select_file().then((selectedFile: unknown) => {
-      const selectedFilePath = selectedFile as string;
-      setFile(selectedFilePath.split(/(\\|\/)/g).pop() || "");
-      setFilePath(selectedFilePath);
+    // @ts-ignore
+    window.pywebview.api.select_file().then((selectedFile: string | null) => {
+      if (selectedFile) {
+        setFile(selectedFile.split(/(\\|\/)/g).pop() || "");
+        setFilePath(selectedFile);
+      }
     });
   };
 
@@ -63,38 +69,25 @@ export function Editor() {
         if (droppedFile.path) {
           setFilePath(droppedFile.path);
         }
-        // Handle the file upload logic
       }
     }
   };
 
-  const handleGenerateCards = () => {
+  const handleGenerateCards = async () => {
     if (!file) {
+      //TODO: hier den guten Alert nutzen
       window.pywebview.api.show_alert("Please select a .pdf file for the flashcards.");
       return;
     }
 
-    window.pywebview.api.generate_flashcards(content, filePath, cardAmount);
+    onGenerateStart();
+    try {
+      await window.pywebview.api.generate_flashcards_test(content, filePath, cardAmount);
+    } catch (error) {
+      console.error("Error generating flashcards:", error);
+      // Error handling is now managed in the App component
+    }
   }
-
-  useEffect(() => {
-    const handleWindowDragEnter = (e: DragEvent) => handleDragEnter(e as unknown as React.DragEvent);
-    const handleWindowDragLeave = (e: DragEvent) => handleDragLeave(e as unknown as React.DragEvent);
-    const handleWindowDragOver = (e: DragEvent) => handleDragOver(e as unknown as React.DragEvent);
-    const handleWindowDrop = (e: DragEvent) => handleDrop(e as unknown as React.DragEvent);
-
-    window.addEventListener("dragenter", handleWindowDragEnter);
-    window.addEventListener("dragleave", handleWindowDragLeave);
-    window.addEventListener("dragover", handleWindowDragOver);
-    window.addEventListener("drop", handleWindowDrop);
-
-    return () => {
-      window.removeEventListener("dragenter", handleWindowDragEnter);
-      window.removeEventListener("dragleave", handleWindowDragLeave);
-      window.removeEventListener("dragover", handleWindowDragOver);
-      window.removeEventListener("drop", handleWindowDrop);
-    };
-  }, []);
 
   return (
     <div className="editor-container">
@@ -144,8 +137,7 @@ export function Editor() {
         </select>
         <button
           className="generate-button"
-          onClick={() => { handleGenerateCards();
-          }}
+          onClick={handleGenerateCards}
         >
           <img src={lightningIcon} alt="Lightning" />
           Generate

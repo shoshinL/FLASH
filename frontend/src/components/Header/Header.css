@@ -10,27 +10,27 @@
 .logo-container {
   display: flex;
   align-items: center;
-  height: 80px; /* Set a fixed width to prevent jumping */
+  height: 80px;
 }
 
 .logo {
-  height: 80px; /* Adjust size as necessary */
+  height: 80px;
 }
 
 .button-icon {
   cursor: pointer;
-  width: 30px; /* Set appropriate size for the back icon */
-  height: 30px; /* Maintain aspect ratio */
+  width: 30px;
+  height: 30px;
 }
 
 .header-title {
-  margin-left: 10px; /* Adjust as needed to get the right spacing */
+  margin-left: 10px;
 }
 
 .settings {
   display: flex;
-  margin-left: auto; /* Pushes settings to the far right */
-  align-items: center; /* Ensure the button stays centered */
+  margin-left: auto;
+  align-items: center;
 }
 
 .settings-button {
@@ -43,5 +43,18 @@
 }
 
 .settings-button:hover, .settings-button.pressed {
-  background-color: #cccccc; /* Darker shade for hover and pressed state */
+  background-color: #cccccc;
+}
+
+.settings-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-button.disabled:hover {
+  background-color: #f0f0f0;
+}
+
+.header-title {
+  color: #333;
 }

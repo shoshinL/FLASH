@@ -1,22 +1,92 @@
-import { useState } from "react";
-import { Header, Heading, Editor, Settings } from "./components";
+import { useState, useEffect } from "react";
+import { Header, Heading, Editor, Settings, LoadingView, ResultsView } from "./components";
+
+interface LoadingStatus {
+  progress: number;
+  message: string;
+}
+
+interface Flashcard {
+  Type: string;
+  Front?: string;
+  Back?: string;
+  Text?: string;
+  BackExtra?: string;
+}
 
 function App() {
-  const [showSettings, setShowSettings] = useState<boolean>(false); // Explicit type definition for useState
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({ progress: 0, message: "" });
+  const [results, setResults] = useState<Flashcard[] | null>(null);
+
+  useEffect(() => {
+    const handleBackendUpdate = (event: CustomEvent) => {
+      const { progress, message, result } = event.detail;
+      if (result) {
+        console.log('Received result from backend:', result);
+        finishLoading(result.flashcards);
+      } else {
+        updateLoadingStatus(progress, message);
+      }
+    };
+
+    window.addEventListener('backendUpdate', handleBackendUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('backendUpdate', handleBackendUpdate as EventListener);
+    };
+  }, []);
 
   const toggleSettings = () => {
-    setShowSettings(!showSettings);
+    if (!isLoading && !results) {
+      setShowSettings(!showSettings);
+    }
   };
+
+  const startLoading = () => {
+    setIsLoading(true);
+    setLoadingStatus({ progress: 0, message: "Initializing..." });
+  };
+
+  const updateLoadingStatus = (progress: number, message: string) => {
+    setLoadingStatus({ progress, message });
+  };
+
+  const finishLoading = (result: Flashcard[]) => {
+    console.log('Finishing loading with result:', result);
+    setIsLoading(false);
+    setResults(result);
+  };
+
+  const resetResults = () => {
+    console.log('Resetting results');
+    setResults(null);
+  };
+
+  const isEditorView = !isLoading && !results;
+
+  console.log('App render - isLoading:', isLoading, 'results:', results);
 
   return (
     <>
-      <Header showSettings={showSettings} onToggleSettings={toggleSettings} />
+      <Header 
+        showSettings={showSettings} 
+        onToggleSettings={toggleSettings}
+        isSettingsEnabled={isEditorView}
+      />
       {showSettings ? (
-         <Settings />
+        <Settings />
+      ) : isLoading ? (
+        <LoadingView status={loadingStatus} />
+      ) : results ? (
+        <ResultsView results={results} onReset={resetResults} />
       ) : (
         <>
           <Heading />
-          <Editor />
+          <Editor 
+            onGenerateStart={startLoading}
+          />
         </>
       )}
     </>
