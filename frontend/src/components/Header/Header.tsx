@@ -1,6 +1,7 @@
 import "./Header.css";
 import logo from "../../assets/logo.png";
 import backIcon from "../../assets/arrow-left-long-solid.svg";
+import gearIcon from "../../assets/gear-solid.svg";
 
 interface HeaderProps {
   showSettings: boolean;
@@ -25,7 +26,8 @@ export function Header({ showSettings, onToggleSettings, isSettingsEnabled }: He
           className={`settings-button ${showSettings ? 'pressed' : ''} ${!isSettingsEnabled ? 'disabled' : ''}`}
           disabled={!isSettingsEnabled}
         >
-          Settings
+          <img src={gearIcon} alt="Settings" className="settings-icon" />
+          <span>Settings</span>
         </button>
       </div>
     </div>
