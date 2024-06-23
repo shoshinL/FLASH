@@ -3,6 +3,7 @@ import "./Editor.css";
 import fileIcon from "../../assets/file-import-solid.svg";
 import pdfFileIcon from "../../assets/file-pdf-solid.svg";
 import trashcanIcon from "../../assets/trash-can-solid.svg";
+import lightningIcon from "../../assets/lightning.svg";
 
 interface FileWithPath extends File {
   path?: string;
@@ -11,22 +12,23 @@ interface FileWithPath extends File {
 export function Editor() {
   const [content, saveContent] = useState("");
   const [file, setFile] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string | null>(null); // Store full file path
+  const [filePath, setFilePath] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cardAmount, setCardAmount] = useState(5);
   const fileUploadRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = () => {
     window.pywebview.api.select_file().then((selectedFile: unknown) => {
-      const selectedFilePath = selectedFile as string; // Assert type to string
-      setFile(selectedFilePath.split(/(\\|\/)/g).pop() || ""); // Extract and set file name
-      setFilePath(selectedFilePath); // Store full file path
+      const selectedFilePath = selectedFile as string;
+      setFile(selectedFilePath.split(/(\\|\/)/g).pop() || "");
+      setFilePath(selectedFilePath);
     });
   };
 
   const handleFileReset = (e: React.MouseEvent) => {
     e.stopPropagation();
     setFile(null);
-    setFilePath(null); // Reset full file path
+    setFilePath(null);
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -59,12 +61,21 @@ export function Editor() {
       if (droppedFile.type === "application/pdf") {
         setFile(droppedFile.name);
         if (droppedFile.path) {
-          setFilePath(droppedFile.path); // Store full file path
+          setFilePath(droppedFile.path);
         }
         // Handle the file upload logic
       }
     }
   };
+
+  const handleGenerateCards = () => {
+    if (!file) {
+      window.pywebview.api.show_alert("Please select a .pdf file for the flashcards.");
+      return;
+    }
+
+    window.pywebview.api.generate_flashcards(content, filePath, cardAmount);
+  }
 
   useEffect(() => {
     const handleWindowDragEnter = (e: DragEvent) => handleDragEnter(e as unknown as React.DragEvent);
@@ -91,20 +102,19 @@ export function Editor() {
         className="textarea"
         placeholder="Enter what the flashcards should focus on in the document below..."
         value={content}
-        onChange={(e) => {
-          saveContent(e.target.value);
-        }}
+        onChange={(e) => saveContent(e.target.value)}
       />
       <div
         ref={fileUploadRef}
         className={`file-upload ${file ? "file-selected" : ""} ${isDragging ? "dragging" : ""}`}
         onClick={handleFileUpload}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <div className="file-icon">
-          <img
-            src={file ? pdfFileIcon : fileIcon}
-            alt="File Icon"
-          />
+          <img src={file ? pdfFileIcon : fileIcon} alt="File Icon" />
         </div>
         <div className="file-text">
           {file ? (
@@ -117,20 +127,30 @@ export function Editor() {
           ) : (
             <>
               <span>{isDragging ? "DROP HERE" : "Select .pdf"}</span>
-              {!isDragging && <span className="file-hint">Or drag and drop here</span>}
+              <span className="file-hint">Or drag and drop here</span>
             </>
           )}
         </div>
       </div>
-      <button
-        className="button"
-        onClick={() => {
-          window.pywebview.api.make_card(content, filePath).then((card: unknown) => {
-            alert(JSON.stringify(card));
-          });
-        }}>
-        MAKE CARD
-      </button>
+      <div className="controls-container">
+        <select
+          className="dropdown"
+          value={cardAmount}
+          onChange={(e) => setCardAmount(Number(e.target.value))}
+        >
+          {[3, 5, 10, 15, 20, 25, 30].map(num => (
+            <option key={num} value={num}>{num} Flashcards</option>
+          ))}
+        </select>
+        <button
+          className="generate-button"
+          onClick={() => { handleGenerateCards();
+          }}
+        >
+          <img src={lightningIcon} alt="Lightning" />
+          Generate
+        </button>
+      </div>
     </div>
   );
 }

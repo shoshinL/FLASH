@@ -43,9 +43,10 @@ class Api:
             return result[0]
         return None
 
-    def make_card(self, content, file_path):
+    def make_card(self, content, file_path, card_amount):
         # Example: Using the content and file_path to create a card
         # This is a placeholder and should be implemented based on your specific requirements
+        print(f"Content: {content}, File path: {file_path}, Card amount: {card_amount}")
         return "Card creation not implemented"
 
     def get_settings(self):
