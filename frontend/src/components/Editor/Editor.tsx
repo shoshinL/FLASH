@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import "./Editor.css";
 import fileIcon from "../../assets/file-import-solid.svg";
 import pdfFileIcon from "../../assets/file-pdf-solid.svg";
@@ -10,15 +10,29 @@ interface FileWithPath extends File {
 }
 
 interface EditorProps {
+  content: string;
+  setContent: (content: string) => void;
+  file: string | null;
+  setFile: (file: string | null) => void;
+  filePath: string | null;
+  setFilePath: (filePath: string | null) => void;
+  cardAmount: number;
+  setCardAmount: (cardAmount: number) => void;
   onGenerateStart: () => void;
 }
 
-export function Editor({ onGenerateStart }: EditorProps) {
-  const [content, saveContent] = useState("");
-  const [file, setFile] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string | null>(null);
+export function Editor({
+  content,
+  setContent,
+  file,
+  setFile,
+  filePath,
+  setFilePath,
+  cardAmount,
+  setCardAmount,
+  onGenerateStart
+}: EditorProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [cardAmount, setCardAmount] = useState(5);
   const fileUploadRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = () => {
@@ -98,7 +112,7 @@ export function Editor({ onGenerateStart }: EditorProps) {
         className="textarea"
         placeholder="Enter what the flashcards should focus on in the document below..."
         value={content}
-        onChange={(e) => saveContent(e.target.value)}
+        onChange={(e) => setContent(e.target.value)}
       />
       <div
         ref={fileUploadRef}

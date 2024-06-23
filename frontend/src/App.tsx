@@ -25,6 +25,12 @@ function App() {
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({ progress: 0, message: "" });
   const [results, setResults] = useState<Results | null>(null);
 
+  // New state for Editor
+  const [content, setContent] = useState<string>("");
+  const [file, setFile] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
+  const [cardAmount, setCardAmount] = useState<number>(5);
+
   useEffect(() => {
     const handleBackendUpdate = (event: CustomEvent) => {
       const { progress, message, result } = event.detail;
@@ -62,6 +68,11 @@ function App() {
     console.log('Finishing loading with result:', result);
     setIsLoading(false);
     setResults(result);
+    // Reset Editor state after generation
+    setContent("");
+    setFile(null);
+    setFilePath(null);
+    setCardAmount(5);
   };
 
   const resetResults = () => {
@@ -90,6 +101,14 @@ function App() {
         <>
           <Heading />
           <Editor 
+            content={content}
+            setContent={setContent}
+            file={file}
+            setFile={setFile}
+            filePath={filePath}
+            setFilePath={setFilePath}
+            cardAmount={cardAmount}
+            setCardAmount={setCardAmount}
             onGenerateStart={startLoading}
           />
         </>
