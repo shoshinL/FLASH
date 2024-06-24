@@ -119,7 +119,9 @@ def question_deduplicator(state: NoteGraphState):
     """
     logger.debug("Deduplicating questions...")
     try:
-        deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])[0]
+        deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
+        if type(deduplicated_questions) == list:
+            deduplicated_questions = deduplicated_questions[0]
     except Exception as e:
         logger.error(f"Error in question_deduplicator: {e}")
 
