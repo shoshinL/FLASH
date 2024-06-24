@@ -6,9 +6,11 @@ from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.constants import Send
 from langgraph.graph import END, StateGraph
 from pydantic import Field
+
 from .process_pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks
 from .retrieval_graph import retrieval_graph
 from .note_agents import QuestionGenerator, QuestionsDeduplicator, ExpertRouter, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
+from venv import logger
 
 class Questions(BaseModel):
     Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")
@@ -81,7 +83,9 @@ def document_loader(state: NoteGraphState):
         state (dict): The updated state of the graphall
     """
     document = load_pdf(state["documentpath"])
+    logger.debug("Generating question formulation chunks...")
     questioning_chunks = get_question_formulation_chunks(document, state["questioning_context"])
+    logger.debug("Initializing retriever from vector store...")
     retriever = [get_retrieval_embeddings(questioning_chunks)]
     return {
          "current_step": "Starting Question Generation...",
@@ -99,6 +103,7 @@ def question_generator(state: QuestionsState):
     Returns:
         state (dict): The updated state of the graph
     """
+    logger.debug("Generating questions...")
     questions = QuestionGenerator(state["questioning_chunk"], state["n_questions"], state["questioning_context"])
     return {"generated_questions": [questions]}
 
@@ -112,6 +117,7 @@ def question_deduplicator(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
+    logger.debug("Deduplicating questions...")
     deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
     step = "Starting Answer Generation..."
 

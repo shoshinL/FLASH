@@ -4,11 +4,18 @@ import random
 import time
 import webview
 import logging
+import sys
 from anki.errors import DBError
 
 from settingUtils.settings_manager import SettingsManager
 from settingUtils.settings_context import SettingsContext
 from agents.note_graph import graph
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler("debug.log"), logging.StreamHandler(sys.stdout)])
+logger = logging.getLogger(__name__)
+
 
 def custom_alert(messages, display_duration=7000) -> str:
     # Convert messages list into a JSON string to handle special characters and maintain structure
@@ -121,7 +128,7 @@ class Api:
         last_step = ""
         progress = 0
 
-        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}, debug=True):
+        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}):
             key = next(iter(state))
             try:
                 current_step = state[key]["current_step"]
@@ -129,6 +136,7 @@ class Api:
                 continue
 
             if current_step != last_step:
+                logger.debug(f"Current step in graph: {current_step}")
                 last_step = current_step
                 progress += 20
                 update = {"progress": progress, "message": current_step}

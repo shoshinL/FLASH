@@ -11,6 +11,7 @@ import tiktoken
 from settingUtils.api_key_utils import require_api_key
 
 def load_pdf(file_path) -> List[Document]:
+    logger.debug(f"Loading PDF file from path: {file_path}")
     system = platform.system()
     if system == "Windows":
         file_path = file_path.replace("/", "\\")
@@ -20,6 +21,7 @@ def load_pdf(file_path) -> List[Document]:
         raise OSError("Unsupported operating system")
 
     loader = PyPDFLoader(file_path, extract_images=False)
+    logger.debug(f"Initialized PDF loader with file path: {file_path}")
     return loader.load()
 
 @require_api_key
@@ -32,17 +34,17 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
             chunk_size=250, chunk_overlap=50
         )
         
-        logger.info("Splitting documents for retrieval...")
+        logger.debug("Splitting documents for retrieval...")
         doc_splits_retrieval = text_splitter_for_retrieval.split_documents(documents)
         
-        logger.info("Creating vector store from documents...")
+        logger.debug("Creating vector store from documents...")
         vectorstore = Chroma.from_documents(
             documents=doc_splits_retrieval,
             collection_name="rag-chroma",
             embedding=NVIDIAEmbeddings(model='NV-Embed-QA', nvidia_api_key=api_key)
         )
         
-        logger.info("Initializing retriever from vector store...")
+        logger.debug("Initializing retriever from vector store...")
         retriever = vectorstore.as_retriever()
         
         return retriever
@@ -93,12 +95,19 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
     List[Document]: A one-element list containing the concatenated documents.
     """
     # Concatenate all pages into a single Document instance
+    logger.debug("Concatenating pages...")
     concatenated_document = concatenate_pages(documents)
     
+    logger.debug("Generating token length for question context...")
     # Encode the question context into tokens using tiktoken
-    encoder = tiktoken.get_encoding("gpt2")  # Adjust based on the actual encoding method used
-    question_context_size = len(encoder.encode(question_context))
-    
+    try:
+        encoder = tiktoken.get_encoding("gpt2")  # Adjust based on the actual encoding method used
+        question_context_size = len(encoder.encode(question_context))
+    except Exception as e:
+        logger.error(f"Error in get_question_formulation_chunks: {e}")
+        return None
+
+    logger.debug("Generating question formulation chunks...")
     # Initialize the text splitter with adjusted chunk size
     adjusted_chunk_size = 5000 - question_context_size
     chunk_overlap = 500

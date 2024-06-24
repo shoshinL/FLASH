@@ -14,8 +14,6 @@ import logging
 ENCRYPTION_KEY = b'FOFbM9Z0p86bFW1KiDwLdvZS7iBr6_1BG5GLkhKlMcc='
 fernet = Fernet(ENCRYPTION_KEY)
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 class SettingsManager:
     def __init__(self):
         logging.debug("Initializing SettingsManager")
