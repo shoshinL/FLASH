@@ -4,6 +4,7 @@ from langchain.output_parsers import OutputFixingParser
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
+from venv import logger
 
 from settingUtils.api_key_utils import require_llm
 
@@ -129,6 +130,7 @@ ListNote = NotePromptModel(
 
 @require_llm
 def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context):
+    logger.debug("Starting QuestionGenerator")
     parser = JsonOutputParser(pydantic_object=Questions)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -168,11 +170,13 @@ def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context):
 
     chain = prompt | llm | fixing_parser
     result = chain.invoke({"document": questioning_chunk, "n_questions": n_questions, "questioning_context": questioning_context})
+    logger.debug(f"Generated Questions: {result}")
     
     return result
 
 @require_llm
 def QuestionsDeduplicator(llm, questions, n_questions):
+    logger.debug("Starting QuestionsDeduplicator")
     parser = JsonOutputParser(pydantic_object=Questions)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -199,7 +203,9 @@ def QuestionsDeduplicator(llm, questions, n_questions):
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
     chain = prompt | llm | fixing_parser
-    return chain.invoke({"questions": questions, "n_questions": n_questions})
+    result = chain.invoke({"questions": questions, "n_questions": n_questions})
+    logger.debug(f"Deduplicated Questions: {result}")
+    return result
 
 class ExpertRouterModel(BaseModel):
     Basic: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'Basic' Note Type")
@@ -210,6 +216,7 @@ class ExpertRouterModel(BaseModel):
 
 @require_llm
 def ExpertRouter(llm, questions_with_answers):
+    logger.debug("Starting ExpertRouter")
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -256,7 +263,6 @@ def ExpertRouter(llm, questions_with_answers):
         {questions_with_answers}
         '''
 
-        Make sure that you assign every index from 0 {n_questions} to a note type!
         The sum of the length of all the lists should be {n_questions}!
         Provide the response in the requested format without any preamble or explanation.
 
@@ -279,7 +285,7 @@ def ExpertRouter(llm, questions_with_answers):
     
     chain = prompt | llm | fixing_parser
     
-    return chain.invoke({
+    result = chain.invoke({
         "questions_with_answers": questions_with_answers, 
         "basic_when_to_use": BasicNote.when_to_use, 
         "basic_when_not_to_use": BasicNote.when_not_to_use, 
@@ -303,6 +309,9 @@ def ExpertRouter(llm, questions_with_answers):
         "list_counter_examples": ListNote.counter_examples,
         "n_questions": len(questions_with_answers)
     })
+    logger.debug(f"Assigned Note Types: {result}") 
+    return result
+
 
 @require_llm
 def BasicNoteGenerator(llm, question_with_answer):

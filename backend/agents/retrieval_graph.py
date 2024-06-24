@@ -5,6 +5,7 @@ from langchain_core.pydantic_v1 import BaseModel
 from langgraph.graph import END, StateGraph
 from pydantic import Field
 from .retrieval_agents import DocumentGrader, AnswerGenerator, HallucinationGrader
+from venv import logger
 
 class Question(BaseModel):
     Question: str = Field(description="A Question to be asked for studying the key points, terms, definitions, facts, context, and content of a document (paper, study notes, lecture slides, ...) very well.")
@@ -39,9 +40,13 @@ def retrieve(state):
     """
     question = state["question"]
 
-
+    logger.debug(f"Retrieving documents for question {question}...")
     # Retrieval
-    documents = state["retriever"][0].invoke(question)
+    try:
+        documents = state["retriever"][0].invoke(question)
+    except Exception as e:
+        logger.error(f"Error in retrieving documents: {e}")
+        documents = []
     return {"documents": documents, "question": question, "questions_with_answers": []}
 
 def grade_documents(state):
@@ -54,6 +59,7 @@ def grade_documents(state):
     Returns:
         state (dict): The state with only relevant documents
     """
+    logger.debug(f"Grading documents for question {state['question']}...")
     question = state["question"]
     documents = state["documents"]
     filtered_documents = []
@@ -62,6 +68,7 @@ def grade_documents(state):
         grade = score["score"]
         if grade.lower() == "yes":
             filtered_documents.append(document)
+    logger.debug("DONE GRADING")
 
     return {"documents": filtered_documents, "question": question}
 
@@ -76,11 +83,13 @@ def generate_answers(state):
     Returns:
         state (dict): The state with the answers added to the questions
     """
+    logger.debug(f"Generating answer for question {state['question']}...")
     question = state["question"]
     documents = state["documents"]
     hallucinated = (state["questions_with_answers"] != [])
 
     answer = AnswerGenerator(question, documents)
+    logger.debug("DONE GENERATING ANSWER")
     return {"questions_with_answers": [{"Question": question, "Answer": answer['answer']}], "hallucinated": hallucinated, "retriever": []}
 
 def answer_scrubber(state):
@@ -144,4 +153,3 @@ retrieval_graph.add_edge("retrieve", "grade_documents")
 retrieval_graph.add_conditional_edges("grade_documents", check_if_documents_left)
 retrieval_graph.add_conditional_edges("generate_answers", grade_hallucination)
 retrieval_graph.set_finish_point("answer_scrubber")
-

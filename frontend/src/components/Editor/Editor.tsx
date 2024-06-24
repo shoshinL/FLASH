@@ -148,7 +148,7 @@ export function Editor({
           value={cardAmount}
           onChange={(e) => setCardAmount(Number(e.target.value))}
         >
-          {[3, 5, 10, 15, 20, 25, 30].map(num => (
+          {[1, 3, 5, 10, 15, 20, 25, 30].map(num => (
             <option key={num} value={num}>{num} Flashcards</option>
           ))}
         </select>

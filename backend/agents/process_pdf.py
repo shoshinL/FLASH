@@ -38,6 +38,7 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
         doc_splits_retrieval = text_splitter_for_retrieval.split_documents(documents)
         
         logger.debug("Creating vector store from documents...")
+
         vectorstore = Chroma.from_documents(
             documents=doc_splits_retrieval,
             collection_name="rag-chroma",

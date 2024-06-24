@@ -118,7 +118,12 @@ def question_deduplicator(state: NoteGraphState):
         state (dict): The updated state of the graph
     """
     logger.debug("Deduplicating questions...")
-    deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
+    try:
+        deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])[0]
+    except Exception as e:
+        logger.error(f"Error in question_deduplicator: {e}")
+
+    logger.debug("Starting Answer Generation...")
     step = "Starting Answer Generation..."
 
     return {"deduplicated_questions": deduplicated_questions, "current_step": step}
@@ -222,7 +227,16 @@ def map_questioning_chunks(state: NoteGraphState):
     return [Send("question_generator", {"questioning_chunk": chunk, "n_questions": state["n_questions"], "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
 
 def map_questions(state: NoteGraphState):
-    return [Send("answer_generator", {"question": question, "retriever": state["retriever"], }) for question in state["deduplicated_questions"]["Questions"]]
+    logger.debug("Mapping questions...")
+    try:
+        logger.debug(f"Questions: {state['deduplicated_questions']['Questions']}")
+        logger.debug(f"Retriever: {state['retriever']}")
+        logger.debug("Attemtping to map questions...")
+        mapper = [Send("answer_generator", {"question": question, "retriever": state["retriever"], }) for question in state["deduplicated_questions"]["Questions"]]
+    except Exception as e:
+        logger.error(f"Error in map_questions: {e}")
+
+    return mapper
 
 def expert_router(state: NoteGraphState):
     questions_with_answers = state["questions_with_answers"]
