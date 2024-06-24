@@ -7,7 +7,7 @@ Flash is an Application that automatically generates Anki Flashcards out of your
 It integrates seamlessly with Anki and saves the cards directly into your Anki storage. It even syncs automatically, if you have syncing set up!
 
 ### How do I use this?
-1. Download and install (Anki)[https://apps.ankiweb.net/]
+1. Download and install [Anki](https://apps.ankiweb.net/)
 2. If you're on Windows, simply dowload the .exe file provided here and run it!
    Windows Defender might try to delete and claim it's a trojan though. 
    That happens because I generated it using PyInstaller and don't have a Certificate I could sign it with. 
@@ -32,7 +32,7 @@ npm run start
 npm run build
 ```
 
-If any dependency issues arise please refer to the (pywebview documentation)[https://pywebview.flowrl.com/guide/installation.html#dependencies]
+If any dependency issues arise please refer to the [pywebview documentation](https://pywebview.flowrl.com/guide/installation.html#dependencies)
 
 ### How does it work?
 Here's how the document get's processed:
