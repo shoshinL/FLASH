@@ -1,14 +1,11 @@
 from typing import List, Type
 from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
-from langchain.schema import OutputParserException
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
-from settingUtils.api_key_utils import require_api_key
-
-model_id = "meta/llama3-70b-instruct"
+from settingUtils.api_key_utils import require_llm
 
 class Questions(BaseModel):
     Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")
@@ -130,9 +127,8 @@ ListNote = NotePromptModel(
 )
 
 
-@require_api_key
-def QuestionGenerator(api_key, questioning_chunk, n_questions, questioning_context):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context):
     parser = JsonOutputParser(pydantic_object=Questions)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -175,9 +171,8 @@ def QuestionGenerator(api_key, questioning_chunk, n_questions, questioning_conte
     
     return result
 
-@require_api_key
-def QuestionsDeduplicator(api_key, questions, n_questions):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def QuestionsDeduplicator(llm, questions, n_questions):
     parser = JsonOutputParser(pydantic_object=Questions)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -213,9 +208,8 @@ class ExpertRouterModel(BaseModel):
     Cloze: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'Cloze' Note Type")
     ItemList: List[int] = Field(description="A List of the indices of the question and answer pairs provided to you that should use the 'List' Note Type") # type: ignore
 
-@require_api_key
-def ExpertRouter(api_key, questions_with_answers):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def ExpertRouter(llm, questions_with_answers):
     parser = PydanticOutputParser(pydantic_object=ExpertRouterModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     prompt = PromptTemplate(
@@ -310,9 +304,8 @@ def ExpertRouter(api_key, questions_with_answers):
         "n_questions": len(questions_with_answers)
     })
 
-@require_api_key
-def BasicNoteGenerator(api_key, question_with_answer):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def BasicNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)    
     format_instructions = parser.get_format_instructions()
@@ -343,9 +336,8 @@ def BasicNoteGenerator(api_key, question_with_answer):
     chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicNote.type, "how_to_use": BasicNote.how_to_use, "examples": BasicNote.examples, "counter_examples": BasicNote.counter_examples})
 
-@require_api_key
-def BasicAndReversedNoteGenerator(api_key, question_with_answer):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def BasicAndReversedNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicAndReversedModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
@@ -377,9 +369,8 @@ def BasicAndReversedNoteGenerator(api_key, question_with_answer):
     chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicAndReversedNote.type, "how_to_use": BasicAndReversedNote.how_to_use, "examples": BasicAndReversedNote.examples, "counter_examples": BasicAndReversedNote.counter_examples})
 
-@require_api_key
-def BasicTypeInAnswerNoteGenerator(api_key, question_with_answer):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicTypeInAnswerModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
@@ -411,9 +402,8 @@ def BasicTypeInAnswerNoteGenerator(api_key, question_with_answer):
     chain = prompt | llm | fixing_parser
     return chain.invoke({"question_with_answer": question_with_answer, "type": BasicTypeInAnswerNote.type, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
 
-@require_api_key
-def ClozeNoteGenerator(api_key, question_with_answer):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def ClozeNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
@@ -448,9 +438,8 @@ def ClozeNoteGenerator(api_key, question_with_answer):
     data["Back Extra"] = data.pop("BackExtra")
     return data
 
-@require_api_key
-def ListNoteGenerator(api_key, question_with_answer):
-    llm = ChatNVIDIA(api_key=api_key, model_id=model_id, temperature=0)
+@require_llm
+def ListNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
     fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
     format_instructions = parser.get_format_instructions()
