@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
-from apiUtils.settings_manager import SettingsManager
+from settingUtils.api_key_utils import require_api_key
 
 class Score(BaseModel):
     score: str = Field(description="either 'yes' or 'no'")
@@ -12,10 +12,10 @@ class Answer(BaseModel):
     answer: str = Field(description="The answer to the question with context and explanation.")
 
 model_id = "meta/llama3-70b-instruct"
-api_key = SettingsManager.api_key()
-llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
-def DocumentGrader(question, documents):
+@require_api_key
+def DocumentGrader(api_key, question, documents):
+    llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key)
     parser = JsonOutputParser(pydantic_object=Score)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -35,7 +35,9 @@ def DocumentGrader(question, documents):
     chain = prompt | llm | parser
     return (chain.invoke({"question": question, "document": documents}))
 
-def AnswerGenerator(question, documents):
+@require_api_key
+def AnswerGenerator(api_key, question, documents):
+    llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key)
     parser = JsonOutputParser(pydantic_object=Answer)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -55,8 +57,9 @@ def AnswerGenerator(question, documents):
     chain = prompt | llm | parser
     return (chain.invoke({"question": question, "documents": documents}))
 
-    
-def HallucinationGrader(answer, documents):
+@require_api_key
+def HallucinationGrader(api_key, answer, documents):
+    llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key)
     parser = JsonOutputParser(pydantic_object=Score)
     prompt = PromptTemplate(
     template=""" <|begin_of_text|><|start_header_id|>system<|end_header_id|>

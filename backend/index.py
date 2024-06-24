@@ -3,8 +3,11 @@ import os
 import random
 import time
 import webview
+import logging
 from anki.errors import DBError
-from apiUtils.settings_manager import SettingsManager
+
+from settingUtils.settings_manager import SettingsManager
+from settingUtils.settings_context import SettingsContext
 from agents.note_graph import graph
 
 def custom_alert(messages, display_duration=7000) -> str:
@@ -31,9 +34,8 @@ def custom_alert(messages, display_duration=7000) -> str:
     """
     return js_code
 
-# Example usage
 def check_settings(window):
-    settings = settings_manager.get_settings()
+    settings = SettingsContext.get_settings_manager().get_settings()
     alert_messages = []
     if not settings['api_key_set']:
         alert_messages.append("Please set your nVidia nim-API key in the settings.")
@@ -119,7 +121,7 @@ class Api:
         last_step = ""
         progress = 0
 
-        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}):
+        for state in graph.stream({"questioning_context": content, "documentpath": file_path, "n_questions": card_amount}, debug=True):
             key = next(iter(state))
             try:
                 current_step = state[key]["current_step"]
@@ -153,39 +155,40 @@ class Api:
             return "ERROR"
 
     def get_settings(self):
-        return settings_manager.get_settings()
+        return SettingsContext.get_settings_manager().get_settings()
 
     def get_profiles(self, anki_db_path):
-        profiles = settings_manager.get_profiles(anki_db_path)
+        profiles = SettingsContext.get_settings_manager().get_profiles(anki_db_path)
         return {"profiles": profiles}
 
     def get_decks(self, profile):
-        decks = settings_manager.get_decks(profile)
+        decks = SettingsContext.get_settings_manager().get_decks(profile)
         return {"decks": decks}
     
     def get_selected_deck(self):
-        return settings_manager.deck_name
+        return SettingsContext.get_settings_manager().deck_name
     
     def get_selected_profile(self):
-        return settings_manager.profile
+        return SettingsContext.get_settings_manager().profile
 
     def select_file_path(self):
         file_types = ('Database Files (*.db)',)
         result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=file_types)
         if result and result[0]:
-            return settings_manager.upsert_anki_db_path(result[0])
+            return SettingsContext.get_settings_manager().upsert_anki_db_path(result[0])
         return {"error": "No file selected"}
 
     def set_profile(self, profile):
-        return settings_manager.upsert_profile(profile)
+        return SettingsContext.get_settings_manager().upsert_profile(profile)
 
     def set_deck(self, deck_name):
-        settings_manager.upsert_deck_name(deck_name)
+        SettingsContext.get_settings_manager().upsert_deck_name(deck_name)
         return {"success": True, "deck_name": deck_name}
 
     def set_api_key(self, api_key):
-        success = settings_manager.set_api_key(api_key)
-        return {"success": success, "api_key_set": settings_manager.api_key_exists()}
+        success = SettingsContext.get_settings_manager().set_api_key(api_key)
+        return {"success": success, "api_key_set": SettingsContext.get_settings_manager().api_key_exists()}
+
 
 def get_entrypoint():
     def exists(path):
@@ -207,14 +210,22 @@ def anki_close_dialog(window):
     exit(1)
 
 if __name__ == "__main__":
+    logging.debug("Starting application")
     api = Api()
     window = webview.create_window("FLASH", entry, maximized=True, js_api=api)
 
     try:
+        logging.debug("Initializing SettingsManager")
         settings_manager = SettingsManager()
+        SettingsContext.set_settings_manager(settings_manager)
+        logging.debug("SettingsManager initialized successfully")
         window.events.loaded += lambda: check_settings(window)
+        logging.debug("Starting webview")
         webview.start()
-    except DBError:
-        webview.start(anki_close_dialog, window)        
+    except DBError as e:
+        logging.error(f"DBError occurred: {str(e)}")
+        webview.start(anki_close_dialog, window)
+    except Exception as e:
+        logging.error(f"Unexpected error occurred: {str(e)}")
 
     

@@ -8,7 +8,7 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 import platform
 import tiktoken
 
-from apiUtils.settings_manager import SettingsManager
+from settingUtils.api_key_utils import require_api_key
 
 def load_pdf(file_path) -> List[Document]:
     system = platform.system()
@@ -22,9 +22,9 @@ def load_pdf(file_path) -> List[Document]:
     loader = PyPDFLoader(file_path, extract_images=False)
     return loader.load()
 
-def get_retrieval_embeddings(documents: List[Document]):
+@require_api_key
+def get_retrieval_embeddings(api_key, documents: List[Document]):
     try:
-        api_key = SettingsManager.api_key()
         if not api_key:
             raise ValueError("API key is missing.")
         
