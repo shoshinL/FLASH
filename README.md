@@ -51,27 +51,52 @@ npm run build
 FLASH processes documents through the following steps:
 
 1. **Document Processing**
-   - Read and split the document into small and large chunks
+   - Reads and splits the document into small (for answer generation) and large (for RAG question generation) chunks.
+   - Node:
+     - `document_loader`:
+       - Input: Document Path.
+       - Function: Parses the pdf, chunks it, and embeds the small chunks for answer generation.
+       - Output: Questioning Chunks, Vector Store Retriever for the answer generation chunks.
 
-2. **Embedding and Question Generation**
-   - Embed small chunks using nv-embed-v1
-   - Generate questions from large chunks
-
-3. **Question Refinement**
-   - Deduplicate generated questions
-
+2. **Question Generation and Deduplication**
+   - Generates questions from large chunks and deduplicate them semantically.
+   - Node(s):
+     - `question_generator`:
+       - Input: Questioning Chunks, Number of Questions to generate, User defined Questioning Context.
+       - Function: Generates Questions for each of the chunks.
+       - Output: List of Questions for the chunk.
+     - `question_deduplicator`:
+       - Input: Generated Questions, Number of Questions to generate.
+       - Function: Deduplicates the questions from all the questioning chunks and reduces them to the number of questions defined by the user.
+       - Output: List of deduplicated questions.
+      
 4. **Answer Generation**
-   - Create parallel subgraphs for each question
-   - Retrieve relevant document chunks
-   - Generate and validate answers
+   - Creates parallel subgraph for each question, utilizes RAG pipeline to generate answers.
+   - Nodes:
+     - `retrieve`:
+       - Input: Vectorstore Retriever.
+       - Function: Retrieves 
+       - Output:
+     - `grade_documents`:
+       - Input:
+       - Function:
+       - Output:
+     - `generate_answers`:
+       - Input:
+       - Function:
+       - Output:
+     - `answer_scrubber`:
+       - Input:
+       - Function:
+       - Output:
 
 5. **Flashcard Creation**
-   - Route Q&A pairs to appropriate Flashcard Generation Experts
+   - Route Q&A pairs to appropriate Flashcard Generation Experts.
    - Generate various card types (Basic, Reversed, Cloze, etc.)
 
 6. **User Review**
-   - Present generated cards to the user for final editing
+   - Present generated cards to the user for final editing.
 
 7. **Anki Integration**
-   - Write cards to selected Anki deck
-   - Sync with AnkiWeb (if enabled)
+   - Write cards to selected Anki deck.
+   - Sync with AnkiWeb (if enabled).
