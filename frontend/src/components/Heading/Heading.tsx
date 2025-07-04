@@ -9,7 +9,6 @@ export function Heading() {
         <br />
         into high-quality Anki flashcards instantly!
       </h1>
-      Powered by nVidia NIM models and Langchain
     </div>
   );
 }

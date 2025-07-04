@@ -187,7 +187,7 @@ export function Settings() {
           setError(null);
           setApiKey("");
         } else {
-          setError('Invalid API key. Please make sure it starts with "nvapi-".');
+          setError('Invalid API key. Please make sure it is a valid OpenAI API key.');
         }
       } else {
         throw new Error("Invalid API key set response");
@@ -247,7 +247,7 @@ export function Settings() {
           type="text"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Enter your nVidia nim-API key"
+          placeholder="Enter your OpenAI API key"
         />
         <button
           className="api-key-button"
