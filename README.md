@@ -76,29 +76,25 @@ FLASH processes documents through the following steps:
    - Creates parallel subgraph for each question, utilizes RAG pipeline to generate answers.
    - Nodes:
      - `retrieve`:
-       - Input: Vectorstore Retriever.
-       - Function: Retrieves 
-       - Output:
+       - Input: Vectorstore-retriever, Question.
+       - Function: Retrieves the 4 most similar small chunks as context for generating an answer.
+       - Output: Retrieved small chunks.
      - `grade_documents`:
-       - Input:
-       - Function:
-       - Output:
+       - Input: Question, Retrieved small chunks.
+       - Function: Filters out chunks that are not actually relevant to answering the question.
+       - Output: Filtered small chunks.
      - `generate_answers`:
-       - Input:
-       - Function:
-       - Output:
-     - `answer_scrubber`:
-       - Input:
-       - Function:
-       - Output:
+       - Input: Question, Filtered small chunks.
+       - Function: Generates answers to the questions based on the retrieved context. (Retries once if the answer was judged to be hallucinated.)
+       - Output: Question-Answer pairs.
 
 5. **Flashcard Creation**
-   - Route Q&A pairs to appropriate Flashcard Generation Experts.
-   - Generate various card types (Basic, Reversed, Cloze, etc.)
+   - Route Q&A pairs to appropriate Flashcard Generation Experts in parralel.
+   - Generate various card types (Basic, Basic and Reversed, Type in the Answer, Cloze, List) out of the Q&A pairs.
 
 6. **User Review**
-   - Present generated cards to the user for final editing.
+   - Present generated cards to the user for final editing and accepting/rejecting cards to be saved.
 
 7. **Anki Integration**
-   - Write cards to selected Anki deck.
+   - Write cards to selected Anki deck with custom tag.
    - Sync with AnkiWeb (if enabled).
