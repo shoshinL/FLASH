@@ -50,6 +50,8 @@ npm run build
 
 FLASH processes documents through the following steps:
 
+<img src="./flash_graph.svg">
+
 1. **Document Processing**
    - Read and split the document into small and large chunks
 

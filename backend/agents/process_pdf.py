@@ -4,7 +4,10 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.vectorstores import Chroma
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+
+# from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+from langchain_openai import OpenAIEmbeddings
+
 import platform
 import tiktoken
 
@@ -42,11 +45,12 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
         vectorstore = Chroma.from_documents(
             documents=doc_splits_retrieval,
             collection_name="rag-chroma",
-            embedding=NVIDIAEmbeddings(model='NV-Embed-QA', nvidia_api_key=api_key)
+            # embedding=NVIDIAEmbeddings(model='NV-Embed-QA', nvidia_api_key=api_key)
+            embedding=OpenAIEmbeddings(model="text-embedding-3-small", api_key=api_key)
         )
         
         logger.debug("Initializing retriever from vector store...")
-        retriever = vectorstore.as_retriever()
+        retriever = vectorstore.as_retriever(search_kwargs={"k":4})
         
         return retriever
     except Exception as e:

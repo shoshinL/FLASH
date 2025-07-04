@@ -11,7 +11,6 @@ class Score(BaseModel):
 class Answer(BaseModel):
     answer: str = Field(description="The answer to the question with context and explanation.")
 
-model_id = "meta/llama3-70b-instruct"
 
 @require_llm
 def DocumentGrader(llm, question, documents):
