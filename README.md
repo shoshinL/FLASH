@@ -62,7 +62,7 @@ FLASH processes documents through the following steps:
 
 2. **Question Generation and Deduplication**
    - Generates questions from large chunks and deduplicate them semantically.
-   - Node(s):
+   - Nodes:
      - `question_generator`:
        - Input: Questioning Chunks, Number of Questions to generate, User defined Questioning Context.
        - Function: Generates Questions for each of the chunks.
