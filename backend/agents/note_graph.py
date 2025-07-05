@@ -246,7 +246,7 @@ def expert_router(state: NoteGraphState):
     routing = []
     for attr, value in vars(expert).items():
         if value != []:
-            routing += [Send(str(attr), {"question_with_answer": questions_with_answers[i]}) for i in value]
+            routing += [Send(str(attr), {"question_with_answer": questions_with_answers[i]}) for i in value if i < len(questions_with_answers)] # Sometimes the LLM generates indices that are out of bounds, so we need to check 
     if not routing:
         return END
     return routing
