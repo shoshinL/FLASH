@@ -1,7 +1,7 @@
 from typing import List, Type
 from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+#from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 from venv import logger
@@ -256,15 +256,17 @@ def ExpertRouter(llm, questions_with_answers):
 
             1. Review each question and answer pair.
             2. Assign each pair to one of the following note types: Basic, BasicAndReversed, BasicTypeInAnswer, Cloze, or ItemList.
-            3. Ensure every pair is assigned a note type based on the guidelines provided.
+            3. Ensure every question and answer pair is assigned a note type based on the guidelines provided. All note types have their own specific use cases and should be used accordingly, don't just assign the first one that fits.
+            4. Output a List of indices for each note type, indicating which question and answer pairs should be assigned to that type.
 
         Here are the questions and answer pairs:
         '''
         {questions_with_answers}
         '''
 
-        The sum of the length of all the lists should be {n_questions}!
         Provide the response in the requested format without any preamble or explanation.
+        EXAMPLE output for list of length 5: {{"Basic": [0, 1], "BasicAndReversed": [2], "BasicTypeInAnswer": [], "Cloze": [4], "ItemList": [3]}}
+        Make sure the index starts at 0 and goes up to {max_index}!
 
         FORMAT:
         {format_instructions}
@@ -278,7 +280,8 @@ def ExpertRouter(llm, questions_with_answers):
             "basic_type_in_answer_counter_examples", "cloze_when_to_use", "cloze_when_not_to_use", 
             "cloze_examples", "cloze_counter_examples", "list_when_to_use", 
             "list_when_not_to_use", "list_examples", "list_counter_examples",
-            "n_questions"
+            "n_questions",
+            "max_index"
         ],
         partial_variables={"format_instructions": parser.get_format_instructions()},
     )
@@ -307,7 +310,8 @@ def ExpertRouter(llm, questions_with_answers):
         "list_when_not_to_use": ListNote.when_not_to_use, 
         "list_examples": ListNote.examples, 
         "list_counter_examples": ListNote.counter_examples,
-        "n_questions": len(questions_with_answers)
+        "n_questions": len(questions_with_answers),
+        "max_index": len(questions_with_answers) - 1
     })
     logger.debug(f"Assigned Note Types: {result}") 
     return result

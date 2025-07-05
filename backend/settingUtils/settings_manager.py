@@ -5,7 +5,7 @@ import sys
 from typing import Dict, List, Any
 from cryptography.fernet import Fernet 
 # from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from langchain.chat_models import init_chat_model
+#from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 
 from ankiUtils.collection_manager import AnkiCollectionManager

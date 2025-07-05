@@ -46,7 +46,7 @@ def check_settings(window):
     settings = SettingsContext.get_settings_manager().get_settings()
     alert_messages = []
     if not settings['api_key_set']:
-        alert_messages.append("Please set your nVidia nim-API key in the settings.")
+        alert_messages.append("Please set your openAI API key in the settings.")
     if not settings['anki_data_location_valid']:
         alert_messages.append("Please select a valid Anki database file (prefs21.db) in the settings.")
     

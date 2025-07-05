@@ -1,6 +1,6 @@
 from .settings_context import SettingsContext
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from langchain.chat_models import init_chat_model
+#from langchain_nvidia_ai_endpoints import ChatNVIDIA
+#from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 
 
@@ -24,7 +24,9 @@ def require_llm(func):
         # model_id = "meta/llama3-70b-instruct"
         # llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
-        model_id = "gpt-4.1-nano-2025-04-14"
+        #model_id = "gpt-4.1-nano-2025-04-14"
+        model_id = "gpt-4.1-mini-2025-04-14" 
+        #model_id = "gpt-4.1-2025-04-14" # Hits rate limits FAST
         llm = ChatOpenAI(
             openai_api_key=api_key,
             model=model_id,
