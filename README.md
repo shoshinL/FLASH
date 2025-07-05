@@ -53,7 +53,7 @@ FLASH processes documents through the following steps:
 <img src="./flash_graph.svg">
 
 1. **Document Processing**
-   - Reads and splits the document into small (for answer generation) and large (for RAG question generation) chunks.
+   - Reads and splits the document into small (for answer generation) and large (for question generation) chunks.
    - Node:
      - `document_loader`:
        - Input: Document Path.
