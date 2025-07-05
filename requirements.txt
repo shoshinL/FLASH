@@ -14,4 +14,4 @@ pypdf
 tiktoken
 tenacity==8.3.0
 cryptography
-protobuf
+protobuf=6.31.1
