@@ -13,3 +13,4 @@ langchain-community
 pypdf
 tiktoken
 tenacity==8.3.0
+cryptography
