@@ -64,7 +64,7 @@ The generated cards will be saved directly to your selected Anki deck and sync a
 
 ## ✨ Features
 - 📄 Supports PDF documents (notes, slides, papers)
-- 🤖 AI-powered question generation and deduplication
+- 🤖 AI-powered card generation with advanced RAG.
 - 🎯 Multiple flashcard types (Basic, Cloze, Type-in, etc.)
 - 🔄 Direct Anki integration with auto-sync
 - ⚡ Parallel processing for faster generation
