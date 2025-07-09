@@ -16,18 +16,23 @@ FLASH is an application that automatically generates Anki Flashcards from your N
 
 ### Installation
 
+**Requirements**: OpenAI API key
+
 #### Option 1: Windows Executable
 
-- Simply download the .exe file provided here and run it!
+[![Latest Release](https://img.shields.io/github/v/release/shoshinL/FLASH?include_prereleases&label=Download)](https://github.com/shoshinL/FLASH/releases/latest)
+
+**Quick Download**: [📦 FLASH-for-Anki-v0.1.0-alpha.1.exe](https://github.com/shoshinL/FLASH/releases/download/v0.1.0-alpha.1/FLASH-for-Anki-v0.1.0-alpha.1.exe)
 
 **Note:** Windows Defender might try to delete and claim it's a trojan. This happens because it was generated using PyInstaller without a signed certificate.
+
+Packaged MacOS App is WIP.
 
 #### Option 2: Build from Source
 
 1. Clone the repository
 2. Run the following commands:
 ```shell
-npm run init
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
@@ -37,15 +42,34 @@ pip install -r requirements.txt
 npm run init
 ```
 
+Either 
 ```shell
 npm run start
 ```
+or, if you want to create your own packaged version
 
 ```shell
 npm run build
 ```
 
 **Note:** If any dependency issues arise please refer to the [pywebview documentation](https://pywebview.flowrl.com/guide/installation.html#dependencies)
+## 📖 Usage
+1. **Setup**: Enter your OpenAI API key in Settings
+2. **Select Deck**: Choose which Anki deck to save flashcards to
+3. **Upload PDF**: Select your PDF file (notes, slides, or papers)
+4. **Add Instructions**: Provide context for card generation (optional)
+5. **Generate**: Click "Generate" and let FLASH create your flashcards!
+
+The generated cards will be saved directly to your selected Anki deck and sync automatically if Ankiweb syncing is enabled in Anki.
+
+## ✨ Features
+- 📄 Supports PDF documents (notes, slides, papers)
+- 🤖 AI-powered question generation and deduplication
+- 🎯 Multiple flashcard types (Basic, Cloze, Type-in, etc.)
+- 🔄 Direct Anki integration with auto-sync
+- ⚡ Parallel processing for faster generation
+
+
 ## 🔧 How It Works
 
 FLASH processes documents through the following steps:
