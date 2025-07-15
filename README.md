@@ -32,9 +32,16 @@ Packaged MacOS App is WIP.
 
 1. Clone the repository
 2. Run the following commands:
+Windows:
 ```shell
 python -m venv venv
 .\venv\Scripts\activate
+pip install -r requirements.txt
+```
+Unix:
+```shell
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
