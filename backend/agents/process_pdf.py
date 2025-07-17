@@ -5,8 +5,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.vectorstores import Chroma
 
-# from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 import platform
 import tiktoken
@@ -30,9 +29,6 @@ def load_pdf(file_path) -> List[Document]:
 @require_api_key
 def get_retrieval_embeddings(api_key, documents: List[Document]):
     try:
-        if not api_key:
-            raise ValueError("API key is missing.")
-        
         text_splitter_for_retrieval = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=250, chunk_overlap=50
         )
@@ -45,8 +41,7 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
         vectorstore = Chroma.from_documents(
             documents=doc_splits_retrieval,
             collection_name="rag-chroma",
-            # embedding=NVIDIAEmbeddings(model='NV-Embed-QA', nvidia_api_key=api_key)
-            embedding=OpenAIEmbeddings(model="text-embedding-3-small", api_key=api_key)
+            embedding=OllamaEmbeddings(model="snowflake-arctic-embed2:latest")
         )
         
         logger.debug("Initializing retriever from vector store...")
@@ -57,7 +52,7 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
         logger.error(f"Error in get_retrieval_embeddings: {e}")
         return None
 
-def concatenate_pages(documents: List[Document]) -> List[Document]:
+def concatenate_pages(documents: List[Document]) -> Document:
     # Assuming 'documents' is a list of Document instances sorted by their page number
     concatenated_content = ""
     last_page = None
@@ -97,7 +92,7 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
     question_context (str): The context of the question to consider for chunk size adjustment.
     
     Returns:
-    List[Document]: A one-element list containing the concatenated documents.
+    List[Document]: A list containing the document chunks.
     """
     # Concatenate all pages into a single Document instance
     logger.debug("Concatenating pages...")
@@ -110,7 +105,7 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
         question_context_size = len(encoder.encode(question_context))
     except Exception as e:
         logger.error(f"Error in get_question_formulation_chunks: {e}")
-        return None
+        return []
 
     logger.debug("Generating question formulation chunks...")
     # Initialize the text splitter with adjusted chunk size

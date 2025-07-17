@@ -5,7 +5,7 @@ py2app; sys_platform == 'darwin'
 anki
 langchain
 langchain_core
-langchain_openai
+langchain-ollama
 langgraph
 pydantic
 langchain-chroma

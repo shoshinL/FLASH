@@ -5,7 +5,6 @@ interface Settings {
   anki_db_path: string;
   profile: string;
   deck_name: string;
-  api_key_set: boolean;
   anki_data_location_valid: boolean;
 }
 
@@ -31,7 +30,7 @@ function isSettings(obj: any): obj is Settings {
     typeof obj.anki_db_path === "string" &&
     typeof obj.profile === "string" &&
     typeof obj.deck_name === "string" &&
-    typeof obj.api_key_set === "boolean"
+    typeof obj.anki_data_location_valid === "boolean"
   );
 }
 
@@ -60,7 +59,6 @@ export function Settings() {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [decks, setDecks] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>("");
 
   useEffect(() => {
     fetchSettings();
@@ -178,26 +176,6 @@ export function Settings() {
     }
   };
 
-  const handleSetApiKey = async () => {
-    try {
-      const response: unknown = await window.pywebview.api.set_api_key(apiKey);
-      if (typeof response === "object" && response !== null && 'success' in response) {
-        if (response.success) {
-          setSettings(prevSettings => ({ ...prevSettings!, api_key_set: true }));
-          setError(null);
-          setApiKey("");
-        } else {
-          setError('Invalid API key. Please make sure it is a valid OpenAI API key.');
-        }
-      } else {
-        throw new Error("Invalid API key set response");
-      }
-    } catch (error) {
-      console.error('Error setting API key:', error);
-      setError('Failed to set API key. Please try again.');
-    }
-  };
-
   if (!settings) {
     return <div>Loading settings...</div>;
   }
@@ -240,22 +218,6 @@ export function Settings() {
             </option>
           ))}
         </select>
-      </div>
-      <div className="settings-item">
-        <label>API Key: </label>
-        <input
-          type="text"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Enter your OpenAI API key"
-        />
-        <button
-          className="api-key-button"
-          onClick={handleSetApiKey}
-          style={{ backgroundColor: settings.api_key_set ? 'red' : 'darkgrey' }}
-        >
-          {settings.api_key_set ? 'Reset API Key' : 'Set API Key'}
-        </button>
       </div>
     </div>
   );

@@ -4,9 +4,6 @@ import os
 import sys
 from typing import Dict, List, Any
 from cryptography.fernet import Fernet 
-# from langchain_nvidia_ai_endpoints import ChatNVIDIA
-#from langchain.chat_models import init_chat_model
-from langchain_openai import ChatOpenAI
 
 from ankiUtils.collection_manager import AnkiCollectionManager
 from ankiUtils.db_access import get_profiles, get_sync_auth
@@ -132,7 +129,6 @@ class SettingsManager:
             "anki_db_path": self.anki_db_path,
             "profile": self.profile,
             "deck_name": self.deck_name,
-            "api_key_set": self.api_key_exists(),
             "anki_data_location_valid": self._is_anki_db_path_valid()
         }
 
@@ -343,34 +339,12 @@ class SettingsManager:
         return self._api_key is not None
     
     def set_api_key(self, api_key: str) -> bool:
-        # if api_key.startswith("nvapi-"):
-        #     try:
-        #         model = ChatNVIDIA(model="meta/llama3-70b-instruct", api_key=api_key)
-        #         model.invoke("Hello, world!")
-        #         self._upsert_api_key(api_key)
-        #         self._api_key = api_key  # Update the instance variable
-        #         logging.debug("API key set successfully")
-        #         return True
-        #     except Exception as e:
-        #         logging.error(f"Error setting API key: {e}")
-        #         return False
-        # logging.warning("Invalid API key format")
-        # return False
-
+        # Since we're using local Ollama models, we don't need to validate API keys
+        # This method is kept for compatibility but always returns True
         try:
-            # os.
-            model_id = "gpt-4.1-nano-2025-04-14"
-            # model = init_chat_model(model_id)
-            model = ChatOpenAI(
-                openai_api_key=api_key,
-                model=model_id,
-                temperature=0.001
-            )
-
-            model.invoke("Hello, world!")
             self._upsert_api_key(api_key)
             self._api_key = api_key  # Update the instance variable
-            logging.debug("API key set successfully")
+            logging.debug("API key set successfully (local Ollama mode)")
             return True
         except Exception as e:
             logging.error(f"Error setting API key: {e}")

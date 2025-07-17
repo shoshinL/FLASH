@@ -45,8 +45,7 @@ def custom_alert(messages, display_duration=7000) -> str:
 def check_settings(window):
     settings = SettingsContext.get_settings_manager().get_settings()
     alert_messages = []
-    if not settings['api_key_set']:
-        alert_messages.append("Please set your openAI API key in the settings.")
+    # API key no longer required with local Ollama models
     if not settings['anki_data_location_valid']:
         alert_messages.append("Please select a valid Anki database file (prefs21.db) in the settings.")
     
@@ -196,7 +195,7 @@ class Api:
 
     def set_api_key(self, api_key):
         success = SettingsContext.get_settings_manager().set_api_key(api_key)
-        return {"success": success, "api_key_set": SettingsContext.get_settings_manager().api_key_exists()}
+        return {"success": success}
 
 
 def get_entrypoint():
