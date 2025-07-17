@@ -4,8 +4,10 @@ from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.pydantic_v1 import BaseModel
 from langgraph.graph import END, StateGraph
 from pydantic import Field
+import logging
 from .retrieval_agents import DocumentGrader, AnswerGenerator, HallucinationGrader
-from venv import logger
+
+logger = logging.getLogger(__name__)
 
 class Question(BaseModel):
     Question: str = Field(description="A Question to be asked for studying the key points, terms, definitions, facts, context, and content of a document (paper, study notes, lecture slides, ...) very well.")

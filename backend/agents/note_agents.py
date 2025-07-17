@@ -4,9 +4,11 @@ from langchain.output_parsers import OutputFixingParser
 #from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
-from venv import logger
+import logging
 
 from settingUtils.api_key_utils import require_llm
+
+logger = logging.getLogger(__name__)
 
 class Questions(BaseModel):
     Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")

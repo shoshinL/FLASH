@@ -6,11 +6,13 @@ from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.constants import Send
 from langgraph.graph import END, StateGraph
 from pydantic import Field
+import logging
 
 from .process_pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks
 from .retrieval_graph import retrieval_graph
 from .note_agents import QuestionGenerator, QuestionsDeduplicator, ExpertRouter, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
-from venv import logger
+
+logger = logging.getLogger(__name__)
 
 class Questions(BaseModel):
     Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")

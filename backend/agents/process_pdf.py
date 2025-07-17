@@ -1,5 +1,5 @@
 from typing import List
-from venv import logger
+import logging
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
@@ -11,6 +11,8 @@ import platform
 import tiktoken
 
 from settingUtils.api_key_utils import require_api_key
+
+logger = logging.getLogger(__name__)
 
 def load_pdf(file_path) -> List[Document]:
     logger.debug(f"Loading PDF file from path: {file_path}")
@@ -30,7 +32,7 @@ def load_pdf(file_path) -> List[Document]:
 def get_retrieval_embeddings(api_key, documents: List[Document]):
     try:
         text_splitter_for_retrieval = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=250, chunk_overlap=50
+            chunk_size=500, chunk_overlap=100
         )
         
         logger.debug("Splitting documents for retrieval...")
@@ -109,8 +111,8 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
 
     logger.debug("Generating question formulation chunks...")
     # Initialize the text splitter with adjusted chunk size
-    adjusted_chunk_size = 5000 - question_context_size
-    chunk_overlap = 500
+    adjusted_chunk_size = 120000 - question_context_size
+    chunk_overlap = 1000
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=adjusted_chunk_size, 
         chunk_overlap=chunk_overlap
