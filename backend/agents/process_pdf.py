@@ -1,5 +1,5 @@
 from typing import List
-from venv import logger
+import logging
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
@@ -12,6 +12,8 @@ import platform
 import tiktoken
 
 from settingUtils.api_key_utils import require_api_key
+
+logger = logging.getLogger(__name__)
 
 def load_pdf(file_path) -> List[Document]:
     logger.debug(f"Loading PDF file from path: {file_path}")
@@ -34,7 +36,7 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
             raise ValueError("API key is missing.")
         
         text_splitter_for_retrieval = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=250, chunk_overlap=50
+            chunk_size=500, chunk_overlap=100
         )
         
         logger.debug("Splitting documents for retrieval...")
@@ -57,7 +59,7 @@ def get_retrieval_embeddings(api_key, documents: List[Document]):
         logger.error(f"Error in get_retrieval_embeddings: {e}")
         return None
 
-def concatenate_pages(documents: List[Document]) -> List[Document]:
+def concatenate_pages(documents: List[Document]) -> Document:
     # Assuming 'documents' is a list of Document instances sorted by their page number
     concatenated_content = ""
     last_page = None
@@ -97,7 +99,7 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
     question_context (str): The context of the question to consider for chunk size adjustment.
     
     Returns:
-    List[Document]: A one-element list containing the concatenated documents.
+    List[Document]: A list containing the document chunks.
     """
     # Concatenate all pages into a single Document instance
     logger.debug("Concatenating pages...")
@@ -110,12 +112,12 @@ def get_question_formulation_chunks(documents: List[Document], question_context:
         question_context_size = len(encoder.encode(question_context))
     except Exception as e:
         logger.error(f"Error in get_question_formulation_chunks: {e}")
-        return None
+        return []
 
     logger.debug("Generating question formulation chunks...")
     # Initialize the text splitter with adjusted chunk size
-    adjusted_chunk_size = 5000 - question_context_size
-    chunk_overlap = 500
+    adjusted_chunk_size = 120000 - question_context_size
+    chunk_overlap = 1000
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=adjusted_chunk_size, 
         chunk_overlap=chunk_overlap

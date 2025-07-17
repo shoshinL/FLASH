@@ -4,8 +4,10 @@ from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.pydantic_v1 import BaseModel
 from langgraph.graph import END, StateGraph
 from pydantic import Field
-from .retrieval_agents import DocumentGrader, AnswerGenerator, HallucinationGrader
-from venv import logger
+import logging
+from .retrieval_agents import DocumentGrader, AnswerGenerator, HallucinationGrader, SingleExpertRouter
+
+logger = logging.getLogger(__name__)
 
 class Question(BaseModel):
     Question: str = Field(description="A Question to be asked for studying the key points, terms, definitions, facts, context, and content of a document (paper, study notes, lecture slides, ...) very well.")
@@ -19,10 +21,17 @@ class RetrievalGraphState(TypedDict):
     """
     Represents the state of the graph at a given time.
 
-    Attributes:
+    Attributes: 
+        question (str): The question to be answered.
+        questions_with_answers (List[QuestionWithAnswer]): The questions with answers.
+        expert_to_route_to (List[str]): The expert to route to for the index of the q&a pair.
+        retriever (List[VectorStoreRetriever]): The retriever to use for retrieving documents.
+        documents (List[Document]): The documents retrieved.
+        hallucinated (bool): Whether the answer is hallucinated or not.
     """
     question: str
     questions_with_answers: List[QuestionWithAnswer] # Add only the given question with answer as a single-element list
+    expert_to_route_to: List[str] # The expert to route to for the index of the q&a pair
     retriever: List[VectorStoreRetriever]
     documents: List[Document]
     hallucinated: bool
@@ -105,11 +114,28 @@ def answer_scrubber(state):
 
     return {"questions_with_answers": [], "retriever": []}
 
+def route_to_expert(state):
+    """
+    Assigns expert ot route to based on the question
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): The state with the expert to route to
+    """
+    question_with_answer = state["questions_with_answers"][0]
+    logger.debug(f"Routing to expert for question {question_with_answer['Question']}...")
+    expert = SingleExpertRouter(question_with_answer)
+    logger.debug(f"Assigned expert: {expert} for question {question_with_answer['Question']}")
+    return {"expert_to_route_to": [expert]}
+    
 retrieval_graph = StateGraph(RetrievalGraphState)
 retrieval_graph.add_node("retrieve", retrieve)
 retrieval_graph.add_node("grade_documents", grade_documents)
 retrieval_graph.add_node("generate_answers", generate_answers)
 retrieval_graph.add_node("answer_scrubber", answer_scrubber)
+retrieval_graph.add_node("route_to_expert", route_to_expert)
 
 ### Edges
 def check_if_documents_left(state):
@@ -146,10 +172,11 @@ def grade_hallucination(state):
         if state["hallucinated"]:
             return "answer_scrubber"
         return "generate_answers"
-    return END
+    return "route_to_expert"
 
 retrieval_graph.set_entry_point("retrieve")
 retrieval_graph.add_edge("retrieve", "grade_documents")
 retrieval_graph.add_conditional_edges("grade_documents", check_if_documents_left)
 retrieval_graph.add_conditional_edges("generate_answers", grade_hallucination)
 retrieval_graph.set_finish_point("answer_scrubber")
+retrieval_graph.set_finish_point("route_to_expert")

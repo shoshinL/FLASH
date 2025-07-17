@@ -1,3 +1,4 @@
+import math
 from typing import Annotated, Dict, TypedDict, List
 from langchain.schema.document import Document
 import operator
@@ -6,11 +7,14 @@ from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.constants import Send
 from langgraph.graph import END, StateGraph
 from pydantic import Field
+import logging
 
 from .process_pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks
 from .retrieval_graph import retrieval_graph
-from .note_agents import QuestionGenerator, QuestionsDeduplicator, ExpertRouter, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
-from venv import logger
+from .note_agents import QuestionGenerator, QuestionsDeduplicator, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
+from .retrieval_agents import SingleExpertRouter
+
+logger = logging.getLogger(__name__)
 
 class Questions(BaseModel):
     Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")
@@ -32,6 +36,7 @@ class NoteGraphState(TypedDict):
     generated_questions: The generated questions
     deduplicated_questions: The deduplicated questions
     questions_with_answers: The questions with answers
+    expert_to_route_to: The expert to route to for the index of the q&a pair
     notes: The completed notes
     """
     current_step: str # The current step in the graph used for loading bar
@@ -43,6 +48,7 @@ class NoteGraphState(TypedDict):
     generated_questions: Annotated[List[Dict[str, List[str]]], operator.add] # The generated questions
     deduplicated_questions: Dict[str, List[str]] # The deduplicated questions
     questions_with_answers: Annotated[List[QuestionWithAnswer], operator.add] # The questions with answers
+    expert_to_route_to: Annotated[List[str], operator.add] # The expert to route to for the index of the q&a pair
     notes: Annotated[List, operator.add] # The completed notes
 
 class QuestionsState(TypedDict):
@@ -88,7 +94,7 @@ def document_loader(state: NoteGraphState):
     logger.debug("Initializing retriever from vector store...")
     retriever = [get_retrieval_embeddings(questioning_chunks)]
     return {
-         "current_step": "Starting Question Generation...",
+         "current_step": "Generating Questions...",
          "questioning_chunks": questioning_chunks,
          "retriever": retriever
     }
@@ -104,7 +110,14 @@ def question_generator(state: QuestionsState):
         state (dict): The updated state of the graph
     """
     logger.debug("Generating questions...")
-    questions = QuestionGenerator(state["questioning_chunk"], state["n_questions"], state["questioning_context"])
+    questions = QuestionGenerator(state["questioning_chunk"], state["n_questions"], state["questioning_context"], [])
+
+    while len(questions["Questions"]) < state["n_questions"]:
+        logger.debug(f"Generated {len(questions)} questions, generating more...")
+        additional_questions = QuestionGenerator(state["questioning_chunk"], state["n_questions"] - len(questions["Questions"]), state["questioning_context"], questions["Questions"])
+        questions["Questions"].extend(additional_questions)
+
+    logger.debug(f"Generated {len(questions['Questions'])} questions.")
     return {"generated_questions": [questions]}
 
 def question_deduplicator(state: NoteGraphState):
@@ -117,7 +130,13 @@ def question_deduplicator(state: NoteGraphState):
     Returns:
         state (dict): The updated state of the graph
     """
-    logger.debug("Deduplicating questions...")
+    if len(state["questioning_chunks"]) == 1:
+        logger.debug("Only one chunk, skipping deduplication.")
+        logger.debug("Generating Answers...")
+        return {"deduplicated_questions": state["generated_questions"][0], "current_step": "Generating Answers..."}
+
+    logger.debug(f"Deduplicating questions from {len(state['questioning_chunks'])} chunks...")
+
     try:
         deduplicated_questions = QuestionsDeduplicator(state["generated_questions"], state["n_questions"])
         if type(deduplicated_questions) == list:
@@ -125,10 +144,9 @@ def question_deduplicator(state: NoteGraphState):
     except Exception as e:
         logger.error(f"Error in question_deduplicator: {e}")
 
-    logger.debug("Starting Answer Generation...")
-    step = "Starting Answer Generation..."
+    logger.debug("Generating Answers...")
 
-    return {"deduplicated_questions": deduplicated_questions, "current_step": step}
+    return {"deduplicated_questions": deduplicated_questions, "current_step": "Generating Answers..."}
 
 def generate_basic(state: NoteGeneratorState):
     """
@@ -215,7 +233,7 @@ note_graph.add_node("document_loader", document_loader)
 note_graph.add_node("question_generator", question_generator)
 note_graph.add_node("question_deduplicator", question_deduplicator)
 note_graph.add_node("answer_generator", retrieval_graph.compile())
-note_graph.add_node("generated_answers_state_updater", lambda state: {"current_step": "Routing to Experts for Card Generation..."})
+note_graph.add_node("generated_answers_state_updater", lambda state: {"current_step": "Generating Cards using Experts..."})
 note_graph.add_node("Basic", generate_basic)
 note_graph.add_node("BasicAndReversed", generate_basic_and_reversed)
 note_graph.add_node("BasicTypeInAnswer", generate_basic_type_in_answer)
@@ -226,7 +244,7 @@ note_graph.add_node("finish", finish)
 
 ### Edges
 def map_questioning_chunks(state: NoteGraphState):
-    return [Send("question_generator", {"questioning_chunk": chunk, "n_questions": state["n_questions"], "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
+    return [Send("question_generator", {"questioning_chunk": chunk, "n_questions": math.ceil(state["n_questions"] / len(state["questioning_chunks"])), "questioning_context": state["questioning_context"]}) for chunk in state["questioning_chunks"]]
 
 def map_questions(state: NoteGraphState):
     logger.debug("Mapping questions...")
@@ -242,13 +260,13 @@ def map_questions(state: NoteGraphState):
 
 def expert_router(state: NoteGraphState):
     questions_with_answers = state["questions_with_answers"]
-    expert = ExpertRouter(questions_with_answers)
+    experts_to_route_to = state["expert_to_route_to"]
+    logger.debug(f"Routing to experts: {experts_to_route_to}")
     routing = []
-    for attr, value in vars(expert).items():
-        if value != []:
-            routing += [Send(str(attr), {"question_with_answer": questions_with_answers[i]}) for i in value if i < len(questions_with_answers)] # Sometimes the LLM generates indices that are out of bounds, so we need to check 
-    if not routing:
+    if not experts_to_route_to:
+        logger.debug("No experts to route to, finishing...")
         return END
+    routing = [Send(experts_to_route_to[i], {"question_with_answer": questions_with_answers}) for i, questions_with_answers in enumerate(questions_with_answers)]
     return routing
 
 note_graph.set_entry_point("start")
@@ -262,6 +280,7 @@ note_graph.add_edge("Basic", "finish")
 note_graph.add_edge("BasicAndReversed", "finish")
 note_graph.add_edge("BasicTypeInAnswer", "finish")
 note_graph.add_edge("Cloze", "finish")
+note_graph.add_edge("ItemList", "finish")
 note_graph.add_edge("finish", END)
 
 graph = note_graph.compile()

@@ -11,10 +11,26 @@ from settingUtils.settings_manager import SettingsManager
 from settingUtils.settings_context import SettingsContext
 from agents.note_graph import graph
 
-logging.basicConfig(level=logging.DEBUG,
+# Configure logging to show only our app's debug messages, not external libraries
+logging.basicConfig(level=logging.INFO,  # Set root logger to INFO
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    #handlers=[logging.FileHandler("debug.log"), logging.StreamHandler(sys.stdout)])
                     handlers=[logging.StreamHandler(sys.stdout)])
+
+# Set our application modules to DEBUG level
+logging.getLogger('settingUtils').setLevel(logging.DEBUG)
+logging.getLogger('agents').setLevel(logging.DEBUG)
+logging.getLogger('ankiUtils').setLevel(logging.DEBUG)
+logging.getLogger(__name__).setLevel(logging.DEBUG)
+
+# Silence noisy external libraries
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('ollama').setLevel(logging.WARNING)
+logging.getLogger('langchain').setLevel(logging.WARNING)
+logging.getLogger('chromadb').setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 
