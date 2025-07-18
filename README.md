@@ -22,8 +22,6 @@ FLASH is an application that automatically generates Anki Flashcards from your N
 
 [![Latest Release](https://img.shields.io/github/v/release/shoshinL/FLASH?include_prereleases&label=Download)](https://github.com/shoshinL/FLASH/releases/latest)
 
-**Quick Download**: [📦 FLASH-for-Anki-v0.1.0-alpha.1.exe](https://github.com/shoshinL/FLASH/releases/download/v0.1.0-alpha.1/FLASH-for-Anki-v0.1.0-alpha.1.exe)
-
 **Note:** Windows Defender might try to delete and claim it's a trojan. This happens because it was generated using PyInstaller without a signed certificate.
 
 Packaged MacOS App is WIP.
@@ -32,6 +30,7 @@ Packaged MacOS App is WIP.
 
 1. Clone the repository
 2. Run the following commands:
+
 Windows:
 ```shell
 python -m venv venv
