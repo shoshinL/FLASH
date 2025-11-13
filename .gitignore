@@ -309,6 +309,11 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# Test configuration with API keys
+backend/test_config_local.py
+backend/test_results.json
+backend/test_report.md
+
 ### react ###
 .DS_*
 **/*.backup.*
