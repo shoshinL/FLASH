@@ -6,11 +6,50 @@
   top: 35%; /* Slightly above the center vertically */
   left: 50%;
   transform: translate(-50%, -35%);
-  padding: 30px;
+  padding: 0;
   background: #f9f9f9;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 600px; /* Increased width for larger container */
+  width: 800px; /* Increased width for larger container */
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.settings-tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 2px solid #ddd;
+  background-color: #fff;
+  border-radius: 10px 10px 0 0;
+}
+
+.settings-tab {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.settings-tab:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.settings-tab.active {
+  color: #4CAF50;
+  border-bottom-color: #4CAF50;
+  background-color: #f9f9f9;
+}
+
+.anki-settings {
+  padding: 30px;
+  width: 100%;
 }
 
 .settings-item {

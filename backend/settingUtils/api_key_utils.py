@@ -1,14 +1,22 @@
 from .settings_context import SettingsContext
-#from langchain_nvidia_ai_endpoints import ChatNVIDIA
-#from langchain.chat_models import init_chat_model
-from langchain_openai import ChatOpenAI
+from .llm_provider import ProviderFactory
+import logging
 
 
 def get_api_key():
+    """Get API key for the current provider (deprecated - use get_provider_config)."""
     settings_manager = SettingsContext.get_settings_manager()
     return settings_manager.get_api_key()
 
+
+def get_provider_config():
+    """Get the current LLM provider configuration."""
+    settings_manager = SettingsContext.get_settings_manager()
+    return settings_manager.get_provider_config()
+
+
 def require_api_key(func):
+    """Decorator for functions that require an API key (deprecated - use require_llm)."""
     def wrapper(*args, **kwargs):
         api_key = get_api_key()
         if not api_key:
@@ -16,23 +24,43 @@ def require_api_key(func):
         return func(api_key, *args, **kwargs)
     return wrapper
 
-def require_llm(func):
-    def wrapper(*args, **kwargs):
-        api_key = get_api_key()
-        if not api_key:
-            raise ValueError("API key is missing.")
-        # model_id = "meta/llama3-70b-instruct"
-        # llm = ChatNVIDIA(model=model_id, nvidia_api_key=api_key, temperature=0)
 
-        #model_id = "gpt-4.1-nano-2025-04-14"
-        model_id = "gpt-4.1-mini-2025-04-14" 
-        #model_id = "gpt-4.1-2025-04-14" # Hits rate limits FAST
-        llm = ChatOpenAI(
-            openai_api_key=api_key,
-            model=model_id,
-            temperature=1e-7
-        )
-        # llm = init_chat_model(model_id)
-        
-        return func(llm, *args, **kwargs)
+def require_llm(func):
+    """Decorator that provides an LLM instance based on the configured provider."""
+    def wrapper(*args, **kwargs):
+        settings_manager = SettingsContext.get_settings_manager()
+        provider_config = settings_manager.get_provider_config()
+
+        provider_name = provider_config.get('provider', 'openai')
+        model = provider_config.get('model')
+        api_key = provider_config.get('api_key')
+
+        # Create provider instance
+        try:
+            if provider_name == 'ollama':
+                # Ollama doesn't need API key
+                provider = ProviderFactory.get_provider(
+                    provider_name,
+                    model=model
+                )
+            else:
+                # Other providers need API key
+                if not api_key:
+                    raise ValueError(f"API key is required for {provider_name}")
+                provider = ProviderFactory.get_provider(
+                    provider_name,
+                    api_key=api_key,
+                    model=model
+                )
+
+            # Get LLM instance
+            llm = provider.get_llm()
+            logging.debug(f"Using {provider_name} provider with model {model}")
+
+            return func(llm, *args, **kwargs)
+
+        except Exception as e:
+            logging.error(f"Failed to initialize LLM provider: {e}")
+            raise
+
     return wrapper

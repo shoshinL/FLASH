@@ -6,6 +6,8 @@ anki
 langchain
 langchain_core
 langchain_openai
+langchain_anthropic
+langchain_google_genai
 langgraph
 pydantic
 langchain-chroma
@@ -14,3 +16,4 @@ pypdf
 tiktoken
 tenacity==8.3.0
 cryptography
+requests

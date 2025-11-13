@@ -2,11 +2,9 @@ from functools import wraps
 import sqlite3
 import os
 import sys
-from typing import Dict, List, Any
-from cryptography.fernet import Fernet 
-# from langchain_nvidia_ai_endpoints import ChatNVIDIA
-#from langchain.chat_models import init_chat_model
-from langchain_openai import ChatOpenAI
+import json
+from typing import Dict, List, Any, Optional
+from cryptography.fernet import Fernet
 
 from ankiUtils.collection_manager import AnkiCollectionManager
 from ankiUtils.db_access import get_profiles, get_sync_auth
@@ -27,12 +25,14 @@ class SettingsManager:
         self.decks = {}
         self.profiles = []
         self._api_key = None
+        self._provider_api_keys = {}  # Cache for provider API keys
 
         if not self._tables_exist():
             self._create_tables()
 
         self._initialize_anki_settings()
         self._load_api_key()
+        self._load_provider_api_keys()
 
     @property
     def collection_manager(self):
@@ -150,13 +150,17 @@ class SettingsManager:
         return os.path.join(app_data_dir, 'storage.db')
 
     def _tables_exist(self) -> bool:
-        return self._key_table_exists() and self._settings_table_exists()
+        return (self._key_table_exists() and
+                self._settings_table_exists() and
+                self._provider_api_keys_table_exists())
 
     def _create_tables(self) -> None:
         if not self._key_table_exists():
             self._create_key_table()
         if not self._settings_table_exists():
             self._create_settings_table()
+        if not self._provider_api_keys_table_exists():
+            self._create_provider_api_keys_table()
 
     def _create_settings_table(self) -> None:
         conn = sqlite3.connect(self.db_path)
@@ -187,6 +191,22 @@ class SettingsManager:
         table_exists = cursor.fetchone()
         conn.close()
         return table_exists is not None
+
+    def _provider_api_keys_table_exists(self) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='provider_api_keys';")
+        table_exists = cursor.fetchone()
+        conn.close()
+        return table_exists is not None
+
+    def _create_provider_api_keys_table(self) -> None:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS provider_api_keys
+                         (provider TEXT PRIMARY KEY, encrypted_key BLOB)''')
+        conn.commit()
+        conn.close()
 
     def _try_get_default_anki_db_path(self) -> str:
         if sys.platform == 'win32':
@@ -402,3 +422,116 @@ class SettingsManager:
                 self.collection_manager.sync()
             except Exception as e:
                 print(f"Error syncing Anki collection: {e}")
+
+    # ========== Provider Configuration Methods ==========
+
+    def _load_provider_api_keys(self) -> None:
+        """Load all provider API keys from database into memory."""
+        logging.debug("Loading provider API keys")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT provider, encrypted_key FROM provider_api_keys;")
+        rows = cursor.fetchall()
+        conn.close()
+
+        self._provider_api_keys = {}
+        for provider, encrypted_key in rows:
+            try:
+                decrypted_key = fernet.decrypt(encrypted_key).decode()
+                self._provider_api_keys[provider] = decrypted_key
+            except Exception as e:
+                logging.error(f"Failed to decrypt API key for {provider}: {e}")
+
+        logging.debug(f"Loaded API keys for providers: {list(self._provider_api_keys.keys())}")
+
+    def set_provider_api_key(self, provider: str, api_key: str) -> None:
+        """Set API key for a specific provider."""
+        encrypted_key = fernet.encrypt(api_key.strip().encode())
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO provider_api_keys (provider, encrypted_key)
+            VALUES (?, ?)
+        ''', (provider, encrypted_key))
+        conn.commit()
+        conn.close()
+
+        # Update cache
+        self._provider_api_keys[provider] = api_key.strip()
+        logging.debug(f"API key set for provider: {provider}")
+
+    def get_provider_api_key(self, provider: str) -> Optional[str]:
+        """Get API key for a specific provider."""
+        return self._provider_api_keys.get(provider)
+
+    def get_all_provider_api_keys(self) -> Dict[str, str]:
+        """Get all provider API keys (for UI display - masked)."""
+        return {provider: "***" + key[-4:] if len(key) > 4 else "***"
+                for provider, key in self._provider_api_keys.items()}
+
+    def set_provider_config(self, provider: str, model: Optional[str] = None) -> None:
+        """Set the current provider and model."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO settings (key, value) VALUES ('current_provider', ?)
+        ''', (provider,))
+
+        if model:
+            cursor.execute('''
+                INSERT OR REPLACE INTO settings (key, value) VALUES ('current_model', ?)
+            ''', (model,))
+
+        conn.commit()
+        conn.close()
+        logging.debug(f"Provider config set: {provider}, model: {model}")
+
+    def get_provider_config(self) -> Dict[str, Any]:
+        """Get the current provider configuration."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Get current provider
+        cursor.execute("SELECT value FROM settings WHERE key = 'current_provider';")
+        provider_row = cursor.fetchone()
+        provider = provider_row[0] if provider_row else 'openai'  # Default to OpenAI
+
+        # Get current model
+        cursor.execute("SELECT value FROM settings WHERE key = 'current_model';")
+        model_row = cursor.fetchone()
+        model = model_row[0] if model_row else None
+
+        conn.close()
+
+        # Get API key for the current provider
+        api_key = self.get_provider_api_key(provider)
+
+        return {
+            'provider': provider,
+            'model': model,
+            'api_key': api_key
+        }
+
+    def validate_provider(self, provider: str, api_key: Optional[str] = None,
+                         model: Optional[str] = None) -> bool:
+        """Validate a provider configuration by making a test call."""
+        try:
+            from settingUtils.llm_provider import ProviderFactory
+
+            if provider == 'ollama':
+                # Ollama doesn't need API key
+                provider_instance = ProviderFactory.get_provider(provider, model=model)
+            else:
+                if not api_key:
+                    return False
+                provider_instance = ProviderFactory.get_provider(
+                    provider,
+                    api_key=api_key,
+                    model=model
+                )
+
+            return provider_instance.validate_api_key()
+
+        except Exception as e:
+            logging.error(f"Provider validation failed: {e}")
+            return False

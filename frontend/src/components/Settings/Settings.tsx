@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./Settings.css";
+import { ProviderSettings } from "./ProviderSettings";
 
 interface Settings {
   anki_db_path: string;
@@ -61,6 +62,7 @@ export function Settings() {
   const [decks, setDecks] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"anki" | "provider">("provider");
 
   useEffect(() => {
     fetchSettings();
@@ -204,59 +206,66 @@ export function Settings() {
 
   return (
     <div className="settings-container">
-      {error && <div className="error-message">{error}</div>}
-      <div className="settings-item">
-        <label>Anki Database File: </label>
-        <input 
-          type="text" 
-          className="file-path-input" 
-          value={settings.anki_db_path} 
-          readOnly 
-          onClick={handleSelectAnkiPath} 
-        />
-      </div>
-      <div className="settings-item">
-        <label>Anki Profile: </label>
-        <select
-          value={settings.profile}
-          onChange={(e) => handleProfileChange(e.target.value)}
-        >
-          {profiles.map((profile) => (
-            <option key={profile} value={profile}>
-              {profile}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="settings-item">
-        <label>Anki Deck: </label>
-        <select
-          value={settings.deck_name}
-          onChange={(e) => handleDeckChange(e.target.value)}
-        >
-          {Object.entries(decks).map(([name, id]) => (
-            <option key={id} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="settings-item">
-        <label>API Key: </label>
-        <input
-          type="text"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Enter your OpenAI API key"
-        />
+      {/* Tab Navigation */}
+      <div className="settings-tabs">
         <button
-          className="api-key-button"
-          onClick={handleSetApiKey}
-          style={{ backgroundColor: settings.api_key_set ? 'red' : 'darkgrey' }}
+          className={`settings-tab ${activeTab === "provider" ? "active" : ""}`}
+          onClick={() => setActiveTab("provider")}
         >
-          {settings.api_key_set ? 'Reset API Key' : 'Set API Key'}
+          Model Provider
+        </button>
+        <button
+          className={`settings-tab ${activeTab === "anki" ? "active" : ""}`}
+          onClick={() => setActiveTab("anki")}
+        >
+          Anki Integration
         </button>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "provider" ? (
+        <ProviderSettings />
+      ) : (
+        <div className="anki-settings">
+          {error && <div className="error-message">{error}</div>}
+          <div className="settings-item">
+            <label>Anki Database File: </label>
+            <input
+              type="text"
+              className="file-path-input"
+              value={settings.anki_db_path}
+              readOnly
+              onClick={handleSelectAnkiPath}
+            />
+          </div>
+          <div className="settings-item">
+            <label>Anki Profile: </label>
+            <select
+              value={settings.profile}
+              onChange={(e) => handleProfileChange(e.target.value)}
+            >
+              {profiles.map((profile) => (
+                <option key={profile} value={profile}>
+                  {profile}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="settings-item">
+            <label>Anki Deck: </label>
+            <select
+              value={settings.deck_name}
+              onChange={(e) => handleDeckChange(e.target.value)}
+            >
+              {Object.entries(decks).map(([name, id]) => (
+                <option key={id} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

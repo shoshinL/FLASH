@@ -1,7 +1,6 @@
 from typing import List
 from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
-#from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 import logging
@@ -10,6 +9,7 @@ from .note_models import (
     BasicModel, BasicAndReversedModel, BasicTypeInAnswerModel, ClozeModel,
     BasicNote, BasicAndReversedNote, BasicTypeInAnswerNote, ClozeNote, ListNote
 )
+from .parser_utils import create_thinking_aware_parser
 
 from settingUtils.api_key_utils import require_llm
 
@@ -26,7 +26,7 @@ class QuestionWithAnswer(BaseModel):
 def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, generated_questions):
     logger.debug("Starting QuestionGenerator")
     parser = JsonOutputParser(pydantic_object=Questions)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a question generating study assistant.
@@ -77,7 +77,7 @@ def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, 
 def QuestionsDeduplicator(llm, questions, n_questions):
     logger.debug("Starting QuestionsDeduplicator")
     parser = JsonOutputParser(pydantic_object=Questions)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a question deduplicator. 
@@ -110,7 +110,7 @@ def QuestionsDeduplicator(llm, questions, n_questions):
 @require_llm
 def BasicNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)    
+    fixing_parser = create_thinking_aware_parser(parser, llm)    
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -142,7 +142,7 @@ def BasicNoteGenerator(llm, question_with_answer):
 @require_llm
 def BasicAndReversedNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicAndReversedModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -175,7 +175,7 @@ def BasicAndReversedNoteGenerator(llm, question_with_answer):
 @require_llm
 def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=BasicTypeInAnswerModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -208,7 +208,7 @@ def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
 @require_llm
 def ClozeNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -244,7 +244,7 @@ def ClozeNoteGenerator(llm, question_with_answer):
 @require_llm
 def ListNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>

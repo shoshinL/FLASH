@@ -59,13 +59,23 @@ def custom_alert(messages, display_duration=7000) -> str:
     return js_code
 
 def check_settings(window):
-    settings = SettingsContext.get_settings_manager().get_settings()
+    settings_manager = SettingsContext.get_settings_manager()
+    settings = settings_manager.get_settings()
+    provider_config = settings_manager.get_provider_config()
+
     alert_messages = []
-    if not settings['api_key_set']:
-        alert_messages.append("Please set your openAI API key in the settings.")
+
+    # Check if provider requires API key and if it's set
+    provider = provider_config.get('provider', 'openai')
+    if provider != 'ollama':  # Ollama doesn't need an API key
+        api_key = provider_config.get('api_key')
+        if not api_key:
+            provider_name = provider.capitalize()
+            alert_messages.append(f"Please set your {provider_name} API key in the settings.")
+
     if not settings['anki_data_location_valid']:
         alert_messages.append("Please select a valid Anki database file (prefs21.db) in the settings.")
-    
+
     if alert_messages:
         window.evaluate_js(custom_alert(alert_messages, 7000))
         return False
@@ -213,6 +223,81 @@ class Api:
     def set_api_key(self, api_key):
         success = SettingsContext.get_settings_manager().set_api_key(api_key)
         return {"success": success, "api_key_set": SettingsContext.get_settings_manager().api_key_exists()}
+
+    # ========== Provider Management API Endpoints ==========
+
+    def get_available_providers(self):
+        """Get list of all available LLM providers."""
+        from settingUtils.llm_provider import ProviderFactory
+        providers = ProviderFactory.get_all_providers()
+        return {"providers": providers}
+
+    def get_provider_config(self):
+        """Get current provider configuration."""
+        config = SettingsContext.get_settings_manager().get_provider_config()
+        # Don't send the actual API key, just whether it's set
+        return {
+            "provider": config.get("provider", "openai"),
+            "model": config.get("model"),
+            "api_key_set": config.get("api_key") is not None
+        }
+
+    def get_available_models(self, provider):
+        """Get available models for a specific provider."""
+        from settingUtils.llm_provider import ProviderFactory
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            api_key = settings_manager.get_provider_api_key(provider)
+
+            if provider == 'ollama':
+                provider_instance = ProviderFactory.get_provider(provider)
+            else:
+                provider_instance = ProviderFactory.get_provider(provider, api_key=api_key)
+
+            models = provider_instance.get_available_models()
+            return {"models": models, "success": True}
+        except Exception as e:
+            logger.error(f"Error fetching models for {provider}: {e}")
+            return {"models": [], "success": False, "error": str(e)}
+
+    def set_provider_api_key(self, provider, api_key):
+        """Set API key for a specific provider."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            settings_manager.set_provider_api_key(provider, api_key)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error setting API key for {provider}: {e}")
+            return {"success": False, "error": str(e)}
+
+    def get_provider_api_keys_status(self):
+        """Get status of which providers have API keys set."""
+        settings_manager = SettingsContext.get_settings_manager()
+        masked_keys = settings_manager.get_all_provider_api_keys()
+        return {
+            "api_keys": masked_keys,
+            "success": True
+        }
+
+    def set_provider_config(self, provider, model=None):
+        """Set the current provider and model."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            settings_manager.set_provider_config(provider, model)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error setting provider config: {e}")
+            return {"success": False, "error": str(e)}
+
+    def validate_provider(self, provider, api_key=None, model=None):
+        """Validate a provider configuration."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            is_valid = settings_manager.validate_provider(provider, api_key, model)
+            return {"valid": is_valid, "success": True}
+        except Exception as e:
+            logger.error(f"Error validating provider {provider}: {e}")
+            return {"valid": False, "success": False, "error": str(e)}
 
 
 def get_entrypoint():

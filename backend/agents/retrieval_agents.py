@@ -1,10 +1,10 @@
-#from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser
 from langchain.output_parsers import OutputFixingParser
 from pydantic import BaseModel, Field
 
 from .note_models import BasicNote, BasicAndReversedNote, BasicTypeInAnswerNote, ClozeNote, ListNote
+from .parser_utils import create_thinking_aware_parser
 
 from settingUtils.api_key_utils import require_llm
 
@@ -38,9 +38,10 @@ def DocumentGrader(llm, question, documents):
 @require_llm
 def AnswerGenerator(llm, question, documents):
     parser = JsonOutputParser(pydantic_object=Answer)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-    You are a study assistant that generates an answer to a user question. 
+    You are a study assistant that generates an answer to a user question.
     Use the retrieved documents to answer the question. \n
     If you don't know the answer, just say that you don't know.
     Aim to be as accurate as possible while being brief and concise! \n
@@ -53,7 +54,7 @@ def AnswerGenerator(llm, question, documents):
     input_variables=["question", "documents"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return (chain.invoke({"question": question, "documents": documents}))
 
 @require_llm
@@ -86,7 +87,7 @@ class SingleRouteModel(BaseModel):
 @require_llm
 def SingleExpertRouter(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=SingleRouteModel)
-    fixing_parser = OutputFixingParser.from_llm(llm=llm, parser=parser, max_retries=1)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     
     prompt = PromptTemplate(
         template="""<system>
