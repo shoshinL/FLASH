@@ -61,7 +61,6 @@ export function Settings() {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [decks, setDecks] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"anki" | "provider">("provider");
 
   useEffect(() => {
@@ -177,26 +176,6 @@ export function Settings() {
     } catch (error) {
       console.error('Error selecting Anki path:', error);
       setError('Failed to set Anki database path. Please try again.');
-    }
-  };
-
-  const handleSetApiKey = async () => {
-    try {
-      const response: unknown = await window.pywebview.api.set_api_key(apiKey);
-      if (typeof response === "object" && response !== null && 'success' in response) {
-        if (response.success) {
-          setSettings(prevSettings => ({ ...prevSettings!, api_key_set: true }));
-          setError(null);
-          setApiKey("");
-        } else {
-          setError('Invalid API key. Please make sure it is a valid OpenAI API key.');
-        }
-      } else {
-        throw new Error("Invalid API key set response");
-      }
-    } catch (error) {
-      console.error('Error setting API key:', error);
-      setError('Failed to set API key. Please try again.');
     }
   };
 

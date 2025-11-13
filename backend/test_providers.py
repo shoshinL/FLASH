@@ -361,8 +361,144 @@ def test_thinking_trace_removal(provider_name: str, api_key: Optional[str], resu
                          {"error": str(e), "traceback": traceback.format_exc()})
 
 
+def test_embedding_support(provider_name: str, api_key: Optional[str], results: TestResults):
+    """Test 7: Embedding model support."""
+    test_name = "Embedding Support"
+    start_time = time.time()
+
+    try:
+        if provider_name != "ollama" and not api_key:
+            duration = time.time() - start_time
+            results.add_result(test_name, provider_name, "SKIP", duration,
+                             {"reason": "No API key provided"})
+            print(f"  ⏭️  {test_name}: SKIP (no API key)")
+            return
+
+        # Get provider instance
+        if provider_name == "ollama":
+            provider = ProviderFactory.get_provider(provider_name)
+        else:
+            provider = ProviderFactory.get_provider(provider_name, api_key=api_key)
+
+        # Check if provider supports embeddings
+        supports_embeddings = provider.supports_embeddings()
+
+        duration = time.time() - start_time
+
+        if provider_name in ["openai", "google", "ollama"]:
+            # These should support embeddings
+            if supports_embeddings:
+                results.add_result(test_name, provider_name, "PASS", duration,
+                                 {"supports_embeddings": True})
+                print(f"  ✅ {test_name}: PASS")
+            else:
+                results.add_result(test_name, provider_name, "FAIL", duration,
+                                 {"reason": "Provider should support embeddings but doesn't",
+                                  "supports_embeddings": False})
+                print(f"  ❌ {test_name}: FAIL")
+        else:
+            # Anthropic and OpenRouter don't support embeddings
+            if not supports_embeddings:
+                results.add_result(test_name, provider_name, "PASS", duration,
+                                 {"supports_embeddings": False,
+                                  "note": "Provider correctly reports no embedding support"})
+                print(f"  ✅ {test_name}: PASS (no embedding support expected)")
+            else:
+                results.add_result(test_name, provider_name, "FAIL", duration,
+                                 {"reason": "Provider reports embedding support unexpectedly",
+                                  "supports_embeddings": True})
+                print(f"  ❌ {test_name}: FAIL")
+
+    except Exception as e:
+        duration = time.time() - start_time
+        results.add_result(test_name, provider_name, "FAIL", duration,
+                         {"error": str(e), "traceback": traceback.format_exc()})
+        print(f"  ❌ {test_name}: FAIL - {str(e)}")
+
+
+def test_embedding_generation(provider_name: str, api_key: Optional[str], results: TestResults):
+    """Test 8: Embedding generation (for providers that support it)."""
+    test_name = "Embedding Generation"
+    start_time = time.time()
+
+    try:
+        # Skip if provider doesn't support embeddings
+        if provider_name not in ["openai", "google", "ollama"]:
+            duration = time.time() - start_time
+            results.add_result(test_name, provider_name, "SKIP", duration,
+                             {"reason": "Provider does not support embeddings"})
+            print(f"  ⏭️  {test_name}: SKIP (no embedding support)")
+            return
+
+        if provider_name != "ollama" and not api_key:
+            duration = time.time() - start_time
+            results.add_result(test_name, provider_name, "SKIP", duration,
+                             {"reason": "No API key provided"})
+            print(f"  ⏭️  {test_name}: SKIP (no API key)")
+            return
+
+        # Get provider instance
+        if provider_name == "ollama":
+            provider = ProviderFactory.get_provider(provider_name)
+        else:
+            provider = ProviderFactory.get_provider(provider_name, api_key=api_key)
+
+        # Get available embedding models
+        embedding_models = provider.get_available_embedding_models()
+
+        if not embedding_models:
+            duration = time.time() - start_time
+            if provider_name == "ollama":
+                results.add_result(test_name, provider_name, "SKIP", duration,
+                                 {"reason": "No Ollama embedding models installed",
+                                  "suggestion": "Run: ollama pull nomic-embed-text"})
+                print(f"  ⏭️  {test_name}: SKIP (no Ollama embedding models)")
+            else:
+                results.add_result(test_name, provider_name, "FAIL", duration,
+                                 {"reason": "No embedding models available"})
+                print(f"  ❌ {test_name}: FAIL (no models)")
+            return
+
+        # Use the first available model
+        embedding_model = embedding_models[0]
+
+        # Create embeddings instance
+        embeddings = provider.get_embeddings(model=embedding_model)
+
+        # Test embedding generation with sample text
+        test_text = "This is a test sentence for embedding generation."
+        embedding_vector = embeddings.embed_query(test_text)
+
+        duration = time.time() - start_time
+
+        # Verify embedding is a list/array of numbers
+        if isinstance(embedding_vector, (list, tuple)) and len(embedding_vector) > 0:
+            results.add_result(test_name, provider_name, "PASS", duration,
+                             {"model": embedding_model,
+                              "embedding_dimension": len(embedding_vector),
+                              "sample_values": str(embedding_vector[:3])})
+            print(f"  ✅ {test_name}: PASS (model: {embedding_model}, dim: {len(embedding_vector)})")
+        else:
+            results.add_result(test_name, provider_name, "FAIL", duration,
+                             {"reason": "Invalid embedding format",
+                              "embedding_type": type(embedding_vector).__name__})
+            print(f"  ❌ {test_name}: FAIL (invalid embedding)")
+
+    except Exception as e:
+        duration = time.time() - start_time
+        if "ollama" in str(e).lower() and provider_name == "ollama":
+            results.add_result(test_name, provider_name, "SKIP", duration,
+                             {"reason": "Ollama not running or model not available",
+                              "error": str(e)})
+            print(f"  ⏭️  {test_name}: SKIP (Ollama not available)")
+        else:
+            results.add_result(test_name, provider_name, "FAIL", duration,
+                             {"error": str(e), "traceback": traceback.format_exc()})
+            print(f"  ❌ {test_name}: FAIL - {str(e)}")
+
+
 def test_thinking_model(provider_name: str, api_key: Optional[str], results: TestResults):
-    """Test 7: Thinking model support (if enabled)."""
+    """Test 9: Thinking model support (if enabled)."""
     test_name = "Thinking Model Support"
 
     if not TEST_SETTINGS.get("test_thinking_models", False):
@@ -443,6 +579,8 @@ def run_all_tests():
         test_basic_llm_call(provider, api_key, results)
         test_json_parsing(provider, api_key, results)
         test_thinking_trace_removal(provider, api_key, results)
+        test_embedding_support(provider, api_key, results)
+        test_embedding_generation(provider, api_key, results)
         test_thinking_model(provider, api_key, results)
 
         # Print provider summary

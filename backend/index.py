@@ -299,6 +299,88 @@ class Api:
             logger.error(f"Error validating provider {provider}: {e}")
             return {"valid": False, "success": False, "error": str(e)}
 
+    # ========== Embedding Configuration API Endpoints ==========
+
+    def get_embedding_providers(self):
+        """Get list of providers that support embeddings."""
+        from settingUtils.llm_provider import ProviderFactory
+        try:
+            providers = ProviderFactory.get_embedding_providers()
+            return {"providers": providers, "success": True}
+        except Exception as e:
+            logger.error(f"Error getting embedding providers: {e}")
+            return {"providers": [], "success": False, "error": str(e)}
+
+    def get_embedding_config(self):
+        """Get current embedding configuration."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            config = settings_manager.get_embedding_config()
+            # Don't send the actual API key, just whether it's set
+            return {
+                "provider": config.get("provider", "openai"),
+                "model": config.get("model"),
+                "api_key_set": config.get("api_key") is not None,
+                "success": True
+            }
+        except Exception as e:
+            logger.error(f"Error getting embedding config: {e}")
+            return {"success": False, "error": str(e)}
+
+    def get_available_embedding_models(self, provider):
+        """Get available embedding models for a specific provider."""
+        from settingUtils.llm_provider import ProviderFactory
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            api_key = settings_manager.get_provider_api_key(provider)
+
+            if provider == 'ollama':
+                provider_instance = ProviderFactory.get_provider(provider)
+            else:
+                if not api_key:
+                    return {"models": [], "success": False,
+                           "error": "API key required for this provider"}
+                provider_instance = ProviderFactory.get_provider(provider, api_key=api_key)
+
+            # Check if provider supports embeddings
+            if not provider_instance.supports_embeddings():
+                return {"models": [], "success": False,
+                       "error": f"{provider} does not support embeddings"}
+
+            models = provider_instance.get_available_embedding_models()
+            return {"models": models, "success": True}
+        except Exception as e:
+            logger.error(f"Error fetching embedding models for {provider}: {e}")
+            return {"models": [], "success": False, "error": str(e)}
+
+    def set_embedding_config(self, provider, model=None):
+        """Set the embedding provider and model."""
+        try:
+            from settingUtils.llm_provider import ProviderFactory
+
+            # Validate that provider supports embeddings
+            settings_manager = SettingsContext.get_settings_manager()
+            api_key = settings_manager.get_provider_api_key(provider)
+
+            if provider == 'ollama':
+                provider_instance = ProviderFactory.get_provider(provider)
+            else:
+                if not api_key:
+                    return {"success": False,
+                           "error": f"API key required for {provider}. Please set it first."}
+                provider_instance = ProviderFactory.get_provider(provider, api_key=api_key)
+
+            if not provider_instance.supports_embeddings():
+                return {"success": False,
+                       "error": f"{provider} does not support embeddings. Choose OpenAI, Google, or Ollama."}
+
+            # Save configuration
+            settings_manager.set_embedding_config(provider, model)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error setting embedding config: {e}")
+            return {"success": False, "error": str(e)}
+
 
 def get_entrypoint():
     def exists(path):

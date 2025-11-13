@@ -189,6 +189,38 @@
   animation: slideIn 0.3s ease-out;
 }
 
+.warning-message {
+  padding: 12px;
+  background-color: #fff3e0;
+  border-left: 4px solid #ff9800;
+  border-radius: 4px;
+  color: #e65100;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.embedding-settings-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.embedding-settings-section h3 {
+  color: #333;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.section-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

@@ -42,7 +42,7 @@ Follow the detailed guide in `UI_TEST_GUIDE.md`.
 
 ### What Gets Tested
 
-The automated backend test suite (`test_providers.py`) tests 7 key areas for each provider:
+The automated backend test suite (`test_providers.py`) tests 9 key areas for each provider:
 
 1. **Provider Initialization** ✅
    - Tests that the provider class can be instantiated
@@ -68,7 +68,16 @@ The automated backend test suite (`test_providers.py`) tests 7 key areas for eac
    - Tests the thinking trace stripping logic
    - Verifies XML tags and JSON fields are removed
 
-7. **Thinking Model Support** ✅ (Optional)
+7. **Embedding Support** ✅
+   - Tests if provider supports embeddings
+   - Verifies correct embedding support status (OpenAI, Google, Ollama: Yes; Anthropic, OpenRouter: No)
+
+8. **Embedding Generation** ✅
+   - Tests actual embedding vector generation
+   - Verifies embedding dimensions and format
+   - Tests with sample text for providers that support embeddings
+
+9. **Thinking Model Support** ✅ (Optional)
    - Tests o1, o3-mini, Gemini 2.0 Thinking models
    - Verifies thinking-aware parser works correctly
 
@@ -195,6 +204,7 @@ Follow `UI_TEST_GUIDE.md` for detailed steps. Key scenarios:
 
 Quick checklist for essential tests:
 
+**LLM Provider Tests**:
 - [ ] Provider dropdown shows all 5 providers
 - [ ] Can set API keys for each provider
 - [ ] Models load correctly for each provider
@@ -203,6 +213,15 @@ Quick checklist for essential tests:
 - [ ] Error messages display properly
 - [ ] Can generate flashcards with new provider
 - [ ] Thinking models work without errors
+
+**Embedding Provider Tests**:
+- [ ] Embedding configuration section is visible
+- [ ] Embedding provider dropdown shows OpenAI, Google, Ollama
+- [ ] Can select different embedding provider than LLM provider
+- [ ] Embedding models load for each provider
+- [ ] API key warnings appear when needed
+- [ ] Embedding configuration persists after restart
+- [ ] Can generate flashcards with different embedding provider
 
 ---
 

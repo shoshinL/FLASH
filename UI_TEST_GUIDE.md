@@ -306,6 +306,151 @@ This guide covers manual testing of the new provider management UI.
 
 ---
 
+### 17. Embedding Provider Configuration - OpenAI ✅
+
+**Steps**:
+1. Open settings → Model Provider tab
+2. Scroll down to "Embedding Model Configuration" section
+3. Select "OpenAI" from embedding provider dropdown
+4. Observe available embedding models
+
+**Expected Results**:
+- [ ] Embedding configuration section is visible below LLM configuration
+- [ ] Section has descriptive text explaining embeddings
+- [ ] OpenAI embedding models load: text-embedding-3-large, text-embedding-3-small, text-embedding-ada-002
+- [ ] If OpenAI API key is set in LLM config, no warning appears
+- [ ] If OpenAI API key is NOT set, warning appears: "OpenAI requires an API key. Please set it in the LLM configuration above."
+- [ ] Can select an embedding model from dropdown
+- [ ] "Apply Embedding Configuration" button is enabled when model is selected
+
+---
+
+### 18. Embedding Provider Configuration - Google ✅
+
+**Steps**:
+1. In embedding configuration section, select "Google (Gemini)"
+2. Observe available models
+3. Select an embedding model
+4. Click "Apply Embedding Configuration"
+
+**Expected Results**:
+- [ ] Google embedding models load: models/embedding-001, models/text-embedding-004
+- [ ] API key warning appears if Google key not set in LLM config
+- [ ] Model selection works correctly
+- [ ] Success message appears: "Embedding configuration saved successfully!"
+- [ ] Success message auto-dismisses after 3 seconds
+
+---
+
+### 19. Embedding Provider Configuration - Ollama ✅
+
+**Steps**:
+1. Select "Ollama (Local)" from embedding provider dropdown
+2. Observe UI changes
+
+**Expected Results with Ollama Running**:
+- [ ] No API key warning (Ollama doesn't need API key)
+- [ ] Embedding models list shows installed embedding models
+- [ ] Expected models: nomic-embed-text, snowflake-arctic-embed2, mxbai-embed-large (if installed)
+- [ ] Can select and apply embedding model
+
+**Expected Results with Ollama Not Running**:
+- [ ] Error message: "Ollama is not running or no embedding models are installed"
+- [ ] Suggestion message: "Please start Ollama and pull embedding models (e.g., 'ollama pull nomic-embed-text')"
+- [ ] Apply button is disabled
+
+**Test Setup**:
+1. Pull Ollama embedding model: `ollama pull nomic-embed-text`
+2. Verify model appears in dropdown
+3. Stop Ollama: `pkill ollama`
+4. Verify error message appears
+5. Restart Ollama: `ollama serve`
+
+---
+
+### 20. Independent LLM and Embedding Provider Selection ✅
+
+**Steps**:
+1. Set LLM provider to "Anthropic" with claude-3-5-haiku model
+2. Set Embedding provider to "OpenAI" with text-embedding-3-small
+3. Apply both configurations
+4. Close settings and reopen
+
+**Expected Results**:
+- [ ] Can use different providers for LLM and embeddings
+- [ ] Anthropic configuration shows in LLM section
+- [ ] OpenAI configuration shows in embedding section
+- [ ] Both configurations persist after closing/reopening settings
+- [ ] Settings survive application restart
+
+**Test Combinations**:
+- [ ] Claude LLM + OpenAI embeddings
+- [ ] GPT LLM + Google embeddings
+- [ ] Gemini LLM + Ollama embeddings
+- [ ] GPT LLM + OpenAI embeddings (same provider, different models)
+
+---
+
+### 21. Embedding Configuration Persistence ✅
+
+**Steps**:
+1. Select OpenAI embedding provider with text-embedding-3-large
+2. Apply embedding configuration
+3. Close application completely
+4. Restart application
+5. Open settings → Model Provider tab
+6. Check embedding configuration section
+
+**Expected Results**:
+- [ ] Embedding provider is still "OpenAI"
+- [ ] Embedding model is still "text-embedding-3-large"
+- [ ] Configuration persisted across restart
+- [ ] No need to reconfigure
+
+---
+
+### 22. Embedding Error Handling ✅
+
+**Steps**:
+1. Select Google embedding provider
+2. Do NOT set Google API key in LLM config
+3. Try to load embedding models
+4. Try to apply embedding configuration
+
+**Expected Results**:
+- [ ] Warning message appears about missing API key
+- [ ] Error message when trying to load models
+- [ ] Clear error message explaining what's wrong
+- [ ] UI remains functional (no crashes)
+- [ ] Can fix by setting API key and retrying
+
+---
+
+### 23. End-to-End Embedding Test ✅
+
+**Steps**:
+1. Set LLM provider: OpenAI with gpt-4o-mini
+2. Set Embedding provider: Google with models/embedding-001
+3. Apply both configurations
+4. Go to main Editor view
+5. Upload a PDF document
+6. Generate flashcards
+
+**Expected Results**:
+- [ ] Flashcard generation starts without errors
+- [ ] PDF processing uses Google embeddings for vector storage
+- [ ] LLM responses use OpenAI GPT-4o-mini
+- [ ] Flashcards generate successfully
+- [ ] No embedding-related errors in process
+- [ ] Can save flashcards to Anki
+
+**Test Different Combinations**:
+1. Claude LLM + Ollama embeddings → Generate flashcards
+2. GPT LLM + OpenAI embeddings → Generate flashcards
+3. Gemini LLM + Google embeddings → Generate flashcards
+
+---
+
 ## Common Issues to Watch For
 
 ### Provider-Specific Issues

@@ -7,8 +7,16 @@ interface ProviderConfig {
   api_key_set: boolean;
 }
 
+interface EmbeddingConfig {
+  provider: string;
+  model: string | null;
+  api_key_set: boolean;
+  success: boolean;
+}
+
 interface ProvidersResponse {
   providers: string[];
+  success?: boolean;
 }
 
 interface ModelsResponse {
@@ -31,6 +39,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export function ProviderSettings() {
+  // LLM Configuration State
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [currentProvider, setCurrentProvider] = useState<string>("openai");
   const [currentModel, setCurrentModel] = useState<string | null>(null);
@@ -42,6 +51,15 @@ export function ProviderSettings() {
   const [modelLoading, setModelLoading] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Embedding Configuration State
+  const [embeddingProviders, setEmbeddingProviders] = useState<string[]>([]);
+  const [currentEmbeddingProvider, setCurrentEmbeddingProvider] = useState<string>("openai");
+  const [currentEmbeddingModel, setCurrentEmbeddingModel] = useState<string | null>(null);
+  const [availableEmbeddingModels, setAvailableEmbeddingModels] = useState<string[]>([]);
+  const [embeddingModelLoading, setEmbeddingModelLoading] = useState<boolean>(false);
+  const [embeddingError, setEmbeddingError] = useState<string | null>(null);
+  const [embeddingSuccessMessage, setEmbeddingSuccessMessage] = useState<string | null>(null);
+
   useEffect(() => {
     fetchProviderData();
   }, []);
@@ -52,16 +70,22 @@ export function ProviderSettings() {
     }
   }, [currentProvider]);
 
+  useEffect(() => {
+    if (currentEmbeddingProvider) {
+      fetchAvailableEmbeddingModels(currentEmbeddingProvider);
+    }
+  }, [currentEmbeddingProvider]);
+
   const fetchProviderData = async () => {
     setLoading(true);
     try {
-      // Fetch available providers
+      // Fetch available LLM providers
       const providersResp: unknown = await window.pywebview.api.get_available_providers();
       if (isProvidersResponse(providersResp)) {
         setAvailableProviders(providersResp.providers);
       }
 
-      // Fetch current provider config
+      // Fetch current LLM provider config
       const configResp: unknown = await window.pywebview.api.get_provider_config();
       if (isProviderConfig(configResp)) {
         setCurrentProvider(configResp.provider);
@@ -74,7 +98,21 @@ export function ProviderSettings() {
         setApiKeys(keysResp.api_keys);
       }
 
+      // Fetch available embedding providers
+      const embeddingProvidersResp: unknown = await window.pywebview.api.get_embedding_providers();
+      if (isProvidersResponse(embeddingProvidersResp)) {
+        setEmbeddingProviders(embeddingProvidersResp.providers);
+      }
+
+      // Fetch current embedding config
+      const embeddingConfigResp: unknown = await window.pywebview.api.get_embedding_config();
+      if (isEmbeddingConfig(embeddingConfigResp)) {
+        setCurrentEmbeddingProvider(embeddingConfigResp.provider);
+        setCurrentEmbeddingModel(embeddingConfigResp.model);
+      }
+
       setError(null);
+      setEmbeddingError(null);
     } catch (err) {
       console.error("Error fetching provider data:", err);
       setError("Failed to load provider settings");
@@ -106,6 +144,32 @@ export function ProviderSettings() {
       setError("Failed to fetch available models");
     } finally {
       setModelLoading(false);
+    }
+  };
+
+  const fetchAvailableEmbeddingModels = async (provider: string) => {
+    setEmbeddingModelLoading(true);
+    try {
+      const response: unknown = await window.pywebview.api.get_available_embedding_models(provider);
+      if (isModelsResponse(response)) {
+        if (response.success) {
+          setAvailableEmbeddingModels(response.models);
+          setEmbeddingError(null);
+        } else {
+          setAvailableEmbeddingModels([]);
+          if (provider === 'ollama') {
+            setEmbeddingError("Ollama is not running or no embedding models are installed. Please start Ollama and pull embedding models (e.g., 'ollama pull nomic-embed-text').");
+          } else {
+            setEmbeddingError(response.error || "Failed to fetch embedding models");
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching embedding models:", err);
+      setAvailableEmbeddingModels([]);
+      setEmbeddingError("Failed to fetch available embedding models");
+    } finally {
+      setEmbeddingModelLoading(false);
     }
   };
 
@@ -178,6 +242,48 @@ export function ProviderSettings() {
     } catch (err) {
       console.error("Error applying provider config:", err);
       setError("Failed to save provider configuration");
+    }
+  };
+
+  const handleEmbeddingProviderChange = async (provider: string) => {
+    setCurrentEmbeddingProvider(provider);
+    setCurrentEmbeddingModel(null);
+    setEmbeddingSuccessMessage(null);
+    await fetchAvailableEmbeddingModels(provider);
+  };
+
+  const handleEmbeddingModelChange = async (model: string) => {
+    setCurrentEmbeddingModel(model);
+    try {
+      const response: unknown = await window.pywebview.api.set_embedding_config(currentEmbeddingProvider, model);
+      if (typeof response === "object" && response !== null && "success" in response && response.success) {
+        setEmbeddingSuccessMessage("Embedding model updated successfully!");
+        setTimeout(() => setEmbeddingSuccessMessage(null), 3000);
+      } else {
+        setEmbeddingError("Failed to set embedding model");
+      }
+    } catch (err) {
+      console.error("Error setting embedding model:", err);
+      setEmbeddingError("Failed to set embedding model");
+    }
+  };
+
+  const handleApplyEmbedding = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.set_embedding_config(currentEmbeddingProvider, currentEmbeddingModel);
+      if (typeof response === "object" && response !== null && "success" in response && response.success) {
+        setEmbeddingSuccessMessage("Embedding configuration saved successfully!");
+        setTimeout(() => setEmbeddingSuccessMessage(null), 3000);
+        setEmbeddingError(null);
+      } else {
+        const errorMsg = (typeof response === "object" && response !== null && "error" in response)
+          ? String(response.error)
+          : "Failed to save embedding configuration";
+        setEmbeddingError(errorMsg);
+      }
+    } catch (err) {
+      console.error("Error applying embedding config:", err);
+      setEmbeddingError("Failed to save embedding configuration");
     }
   };
 
@@ -287,6 +393,84 @@ export function ProviderSettings() {
         </button>
       </div>
 
+      {/* Embedding Configuration Section */}
+      <div className="embedding-settings-section">
+        <h3>Embedding Model Configuration</h3>
+        <p className="section-description">
+          Embeddings are used to convert text into numerical vectors for similarity search and retrieval.
+          You can use a different provider for embeddings than your LLM provider.
+        </p>
+
+        {embeddingError && <div className="error-message">{embeddingError}</div>}
+        {embeddingSuccessMessage && <div className="success-message">{embeddingSuccessMessage}</div>}
+
+        {/* Embedding Provider Selection */}
+        <div className="settings-item">
+          <label>Embedding Provider:</label>
+          <select
+            value={currentEmbeddingProvider}
+            onChange={(e) => handleEmbeddingProviderChange(e.target.value)}
+            className="provider-select"
+          >
+            {embeddingProviders.map((provider) => (
+              <option key={provider} value={provider}>
+                {PROVIDER_DISPLAY_NAMES[provider] || provider}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Note if using same provider without API key */}
+        {requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider) && (
+          <div className="warning-message">
+            ⚠️ {PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider]} requires an API key.
+            Please set it in the LLM configuration above.
+          </div>
+        )}
+
+        {/* Embedding Model Selection */}
+        <div className="settings-item">
+          <label>Embedding Model:</label>
+          {embeddingModelLoading ? (
+            <div className="model-loading">Loading embedding models...</div>
+          ) : availableEmbeddingModels.length > 0 ? (
+            <select
+              value={currentEmbeddingModel || ""}
+              onChange={(e) => handleEmbeddingModelChange(e.target.value)}
+              className="model-select"
+            >
+              <option value="" disabled>
+                Select an embedding model
+              </option>
+              {availableEmbeddingModels.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="no-models">
+              {currentEmbeddingProvider === 'ollama'
+                ? 'No Ollama embedding models found. Please install models using "ollama pull nomic-embed-text"'
+                : requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider)
+                ? 'Please set an API key first'
+                : 'No embedding models available'}
+            </div>
+          )}
+        </div>
+
+        {/* Apply Embedding Configuration Button */}
+        <div className="settings-item">
+          <button
+            onClick={handleApplyEmbedding}
+            className="apply-button"
+            disabled={!currentEmbeddingModel}
+          >
+            Apply Embedding Configuration
+          </button>
+        </div>
+      </div>
+
       {/* Provider Info */}
       <div className="provider-info">
         <h4>About this provider:</h4>
@@ -324,6 +508,15 @@ function isApiKeysStatusResponse(obj: any): obj is ApiKeysStatusResponse {
   return (
     typeof obj === "object" &&
     typeof obj.api_keys === "object" &&
+    typeof obj.success === "boolean"
+  );
+}
+
+function isEmbeddingConfig(obj: any): obj is EmbeddingConfig {
+  return (
+    typeof obj === "object" &&
+    typeof obj.provider === "string" &&
+    (obj.model === null || typeof obj.model === "string") &&
     typeof obj.success === "boolean"
   );
 }
