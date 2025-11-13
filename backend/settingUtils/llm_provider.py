@@ -1,24 +1,28 @@
 """
-LLM Provider abstraction layer for FLASH.
-Supports multiple LLM providers: OpenAI, Anthropic, Google, OpenRouter, and Ollama.
+LLM and Embedding Provider abstraction layer for FLASH.
+Supports multiple providers: OpenAI, Anthropic, Google, OpenRouter, and Ollama.
+Includes both LLM and embedding model support.
 """
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
 import logging
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.chat_models import ChatOllama
+from langchain_community.embeddings import OllamaEmbeddings
 import requests
 
 
 class LLMProvider(ABC):
-    """Base class for LLM providers."""
+    """Base class for LLM and embedding providers."""
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None,
+                 embedding_model: Optional[str] = None):
         self.api_key = api_key
         self.model = model
+        self.embedding_model = embedding_model
         self.temperature = 1e-7  # Default very low temperature for consistency
 
     @abstractmethod
@@ -28,7 +32,22 @@ class LLMProvider(ABC):
 
     @abstractmethod
     def get_available_models(self) -> List[str]:
-        """Get list of available models for this provider."""
+        """Get list of available LLM models for this provider."""
+        pass
+
+    @abstractmethod
+    def get_available_embedding_models(self) -> List[str]:
+        """Get list of available embedding models for this provider."""
+        pass
+
+    @abstractmethod
+    def get_embeddings(self, model: Optional[str] = None):
+        """Get embeddings instance for this provider."""
+        pass
+
+    @abstractmethod
+    def supports_embeddings(self) -> bool:
+        """Whether this provider supports embeddings."""
         pass
 
     @abstractmethod
@@ -63,12 +82,21 @@ class OpenAIProvider(LLMProvider):
         "o3-mini"
     ]
 
+    EMBEDDING_MODELS = [
+        "text-embedding-3-large",
+        "text-embedding-3-small",
+        "text-embedding-ada-002"
+    ]
+
     @property
     def name(self) -> str:
         return "openai"
 
     @property
     def requires_api_key(self) -> bool:
+        return True
+
+    def supports_embeddings(self) -> bool:
         return True
 
     def get_llm(self, temperature: Optional[float] = None):
@@ -84,8 +112,21 @@ class OpenAIProvider(LLMProvider):
 
     def get_available_models(self) -> List[str]:
         """Get available OpenAI models."""
-        # For now, return popular models. Could be extended to fetch from API
         return self.POPULAR_MODELS
+
+    def get_available_embedding_models(self) -> List[str]:
+        """Get available OpenAI embedding models."""
+        return self.EMBEDDING_MODELS
+
+    def get_embeddings(self, model: Optional[str] = None):
+        """Get OpenAI embeddings instance."""
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required")
+
+        return OpenAIEmbeddings(
+            openai_api_key=self.api_key,
+            model=model or self.embedding_model or "text-embedding-3-small"
+        )
 
     def validate_api_key(self) -> bool:
         """Validate OpenAI API key."""
@@ -117,6 +158,9 @@ class AnthropicProvider(LLMProvider):
     def requires_api_key(self) -> bool:
         return True
 
+    def supports_embeddings(self) -> bool:
+        return False  # Anthropic doesn't provide embeddings
+
     def get_llm(self, temperature: Optional[float] = None):
         """Get Anthropic LLM instance."""
         if not self.api_key:
@@ -131,6 +175,14 @@ class AnthropicProvider(LLMProvider):
     def get_available_models(self) -> List[str]:
         """Get available Anthropic models."""
         return self.POPULAR_MODELS
+
+    def get_available_embedding_models(self) -> List[str]:
+        """Anthropic doesn't provide embedding models."""
+        return []
+
+    def get_embeddings(self, model: Optional[str] = None):
+        """Anthropic doesn't provide embeddings."""
+        raise NotImplementedError("Anthropic does not provide embedding models")
 
     def validate_api_key(self) -> bool:
         """Validate Anthropic API key."""
@@ -154,12 +206,20 @@ class GoogleProvider(LLMProvider):
         "gemini-1.5-flash-8b"
     ]
 
+    EMBEDDING_MODELS = [
+        "models/embedding-001",
+        "models/text-embedding-004"
+    ]
+
     @property
     def name(self) -> str:
         return "google"
 
     @property
     def requires_api_key(self) -> bool:
+        return True
+
+    def supports_embeddings(self) -> bool:
         return True
 
     def get_llm(self, temperature: Optional[float] = None):
@@ -176,6 +236,20 @@ class GoogleProvider(LLMProvider):
     def get_available_models(self) -> List[str]:
         """Get available Google models."""
         return self.POPULAR_MODELS
+
+    def get_available_embedding_models(self) -> List[str]:
+        """Get available Google embedding models."""
+        return self.EMBEDDING_MODELS
+
+    def get_embeddings(self, model: Optional[str] = None):
+        """Get Google embeddings instance."""
+        if not self.api_key:
+            raise ValueError("Google API key is required")
+
+        return GoogleGenerativeAIEmbeddings(
+            google_api_key=self.api_key,
+            model=model or self.embedding_model or "models/embedding-001"
+        )
 
     def validate_api_key(self) -> bool:
         """Validate Google API key."""
@@ -210,6 +284,9 @@ class OpenRouterProvider(LLMProvider):
     def requires_api_key(self) -> bool:
         return True
 
+    def supports_embeddings(self) -> bool:
+        return False  # OpenRouter doesn't provide embeddings directly
+
     def get_llm(self, temperature: Optional[float] = None):
         """Get OpenRouter LLM instance."""
         if not self.api_key:
@@ -225,8 +302,15 @@ class OpenRouterProvider(LLMProvider):
 
     def get_available_models(self) -> List[str]:
         """Get available OpenRouter models."""
-        # Could be extended to fetch from OpenRouter API
         return self.POPULAR_MODELS
+
+    def get_available_embedding_models(self) -> List[str]:
+        """OpenRouter doesn't provide embedding models."""
+        return []
+
+    def get_embeddings(self, model: Optional[str] = None):
+        """OpenRouter doesn't provide embeddings."""
+        raise NotImplementedError("OpenRouter does not provide embedding models")
 
     def validate_api_key(self) -> bool:
         """Validate OpenRouter API key."""
@@ -245,8 +329,8 @@ class OllamaProvider(LLMProvider):
     DEFAULT_BASE_URL = "http://localhost:11434"
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None,
-                 base_url: Optional[str] = None):
-        super().__init__(api_key, model)
+                 embedding_model: Optional[str] = None, base_url: Optional[str] = None):
+        super().__init__(api_key, model, embedding_model)
         self.base_url = base_url or self.DEFAULT_BASE_URL
 
     @property
@@ -256,6 +340,9 @@ class OllamaProvider(LLMProvider):
     @property
     def requires_api_key(self) -> bool:
         return False
+
+    def supports_embeddings(self) -> bool:
+        return True
 
     def get_llm(self, temperature: Optional[float] = None):
         """Get Ollama LLM instance."""
@@ -272,15 +359,42 @@ class OllamaProvider(LLMProvider):
             response.raise_for_status()
             data = response.json()
             models = [model['name'] for model in data.get('models', [])]
-            return models if models else ["llama3.2"]  # Fallback
+            return models if models else ["llama3.2"]
         except Exception as e:
             logging.error(f"Failed to fetch Ollama models: {e}")
-            return ["llama3.2", "mistral", "codellama"]  # Common defaults
+            return ["llama3.2", "mistral", "codellama"]
+
+    def get_available_embedding_models(self) -> List[str]:
+        """Get list of locally installed Ollama embedding models."""
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            # Filter for common embedding models
+            all_models = [model['name'] for model in data.get('models', [])]
+            # Common embedding model names
+            embedding_keywords = ['embed', 'embedding', 'nomic', 'snowflake', 'mxbai']
+            embedding_models = [m for m in all_models if any(k in m.lower() for k in embedding_keywords)]
+
+            # If no embedding models found, return common defaults
+            if not embedding_models:
+                return ["nomic-embed-text", "snowflake-arctic-embed2", "mxbai-embed-large"]
+
+            return embedding_models
+        except Exception as e:
+            logging.error(f"Failed to fetch Ollama embedding models: {e}")
+            return ["nomic-embed-text", "snowflake-arctic-embed2", "mxbai-embed-large"]
+
+    def get_embeddings(self, model: Optional[str] = None):
+        """Get Ollama embeddings instance."""
+        return OllamaEmbeddings(
+            model=model or self.embedding_model or "nomic-embed-text",
+            base_url=self.base_url
+        )
 
     def validate_api_key(self) -> bool:
         """Validate Ollama connection (no API key needed)."""
         try:
-            # Just check if Ollama is running
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             return response.status_code == 200
         except Exception as e:
@@ -289,7 +403,7 @@ class OllamaProvider(LLMProvider):
 
 
 class ProviderFactory:
-    """Factory class for creating LLM providers."""
+    """Factory class for creating LLM and embedding providers."""
 
     PROVIDERS = {
         "openai": OpenAIProvider,
@@ -301,15 +415,22 @@ class ProviderFactory:
 
     @staticmethod
     def get_provider(provider_name: str, api_key: Optional[str] = None,
-                     model: Optional[str] = None, **kwargs) -> LLMProvider:
+                     model: Optional[str] = None, embedding_model: Optional[str] = None,
+                     **kwargs) -> LLMProvider:
         """Create a provider instance by name."""
         provider_class = ProviderFactory.PROVIDERS.get(provider_name.lower())
         if not provider_class:
             raise ValueError(f"Unknown provider: {provider_name}")
 
-        return provider_class(api_key=api_key, model=model, **kwargs)
+        return provider_class(api_key=api_key, model=model,
+                            embedding_model=embedding_model, **kwargs)
 
     @staticmethod
     def get_all_providers() -> List[str]:
         """Get list of all available provider names."""
         return list(ProviderFactory.PROVIDERS.keys())
+
+    @staticmethod
+    def get_embedding_providers() -> List[str]:
+        """Get list of providers that support embeddings."""
+        return ["openai", "google", "ollama"]

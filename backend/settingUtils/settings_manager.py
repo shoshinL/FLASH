@@ -535,3 +535,68 @@ class SettingsManager:
         except Exception as e:
             logging.error(f"Provider validation failed: {e}")
             return False
+
+    # ========== Embedding Configuration Methods ==========
+
+    def set_embedding_config(self, provider: str, model: Optional[str] = None) -> None:
+        """Set the embedding provider and model."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO settings (key, value) VALUES ('embedding_provider', ?)
+        ''', (provider,))
+
+        if model:
+            cursor.execute('''
+                INSERT OR REPLACE INTO settings (key, value) VALUES ('embedding_model', ?)
+            ''', (model,))
+
+        conn.commit()
+        conn.close()
+        logging.debug(f"Embedding config set: {provider}, model: {model}")
+
+    def get_embedding_config(self) -> Dict[str, Any]:
+        """Get the current embedding configuration."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Get embedding provider
+        cursor.execute("SELECT value FROM settings WHERE key = 'embedding_provider';")
+        provider_row = cursor.fetchone()
+        provider = provider_row[0] if provider_row else 'openai'  # Default to OpenAI
+
+        # Get embedding model
+        cursor.execute("SELECT value FROM settings WHERE key = 'embedding_model';")
+        model_row = cursor.fetchone()
+        model = model_row[0] if model_row else None
+
+        conn.close()
+
+        # Get API key for the embedding provider
+        api_key = self.get_provider_api_key(provider)
+
+        return {
+            'provider': provider,
+            'model': model,
+            'api_key': api_key
+        }
+
+    def get_embedding_provider_with_config(self):
+        """Get a fully configured embedding provider instance."""
+        from settingUtils.llm_provider import ProviderFactory
+
+        config = self.get_embedding_config()
+        provider_name = config['provider']
+        model = config['model']
+        api_key = config['api_key']
+
+        if provider_name == 'ollama':
+            return ProviderFactory.get_provider(provider_name, embedding_model=model)
+        else:
+            if not api_key:
+                raise ValueError(f"API key required for {provider_name}")
+            return ProviderFactory.get_provider(
+                provider_name,
+                api_key=api_key,
+                embedding_model=model
+            )

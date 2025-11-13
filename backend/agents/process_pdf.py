@@ -5,13 +5,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.vectorstores import Chroma
 
-# from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
-from langchain_openai import OpenAIEmbeddings
-
 import platform
 import tiktoken
 
-from settingUtils.api_key_utils import require_api_key
+from settingUtils.settings_context import SettingsContext
 
 logger = logging.getLogger(__name__)
 
@@ -29,31 +26,43 @@ def load_pdf(file_path) -> List[Document]:
     logger.debug(f"Initialized PDF loader with file path: {file_path}")
     return loader.load()
 
-@require_api_key
-def get_retrieval_embeddings(api_key, documents: List[Document]):
+def get_retrieval_embeddings(documents: List[Document]):
+    """
+    Create embeddings and retriever from documents using configured provider.
+
+    Uses the embedding provider and model configured in settings.
+    Supports OpenAI, Google, and Ollama embedding models.
+    """
     try:
-        if not api_key:
-            raise ValueError("API key is missing.")
-        
+        settings_manager = SettingsContext.get_settings_manager()
+
         text_splitter_for_retrieval = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=500, chunk_overlap=100
         )
-        
+
         logger.debug("Splitting documents for retrieval...")
         doc_splits_retrieval = text_splitter_for_retrieval.split_documents(documents)
-        
-        logger.debug("Creating vector store from documents...")
 
+        logger.debug("Getting embedding provider from settings...")
+        provider = settings_manager.get_embedding_provider_with_config()
+
+        embedding_config = settings_manager.get_embedding_config()
+        logger.debug(f"Using embedding provider: {embedding_config['provider']}, "
+                    f"model: {embedding_config['model']}")
+
+        # Get embeddings instance from provider
+        embeddings = provider.get_embeddings()
+
+        logger.debug("Creating vector store from documents...")
         vectorstore = Chroma.from_documents(
             documents=doc_splits_retrieval,
             collection_name="rag-chroma",
-            # embedding=NVIDIAEmbeddings(model='NV-Embed-QA', nvidia_api_key=api_key)
-            embedding=OpenAIEmbeddings(model="text-embedding-3-small", api_key=api_key)
+            embedding=embeddings
         )
-        
+
         logger.debug("Initializing retriever from vector store...")
         retriever = vectorstore.as_retriever(search_kwargs={"k":4})
-        
+
         return retriever
     except Exception as e:
         logger.error(f"Error in get_retrieval_embeddings: {e}")
