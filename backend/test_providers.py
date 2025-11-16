@@ -511,16 +511,23 @@ def test_thinking_model(provider_name: str, api_key: Optional[str], results: Tes
     start_time = time.time()
 
     try:
-        if not api_key:
+        # Ollama doesn't require an API key
+        if provider_name != "ollama" and not api_key:
             results.add_result(test_name, provider_name, "SKIP", 0,
                              {"reason": "No API key provided"})
             return
 
-        provider = ProviderFactory.get_provider(
-            provider_name,
-            api_key=api_key,
-            model=THINKING_MODELS[provider_name]
-        )
+        if provider_name == "ollama":
+            provider = ProviderFactory.get_provider(
+                provider_name,
+                model=THINKING_MODELS[provider_name]
+            )
+        else:
+            provider = ProviderFactory.get_provider(
+                provider_name,
+                api_key=api_key,
+                model=THINKING_MODELS[provider_name]
+            )
 
         llm = provider.get_llm()
         parser = JsonOutputParser(pydantic_object=Questions)
