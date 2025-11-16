@@ -9,6 +9,7 @@ from cryptography.fernet import Fernet
 from anki.collection_manager import AnkiCollectionManager
 from anki.db_access import get_profiles, get_sync_auth
 from anki.errors import DBError
+from database.settings_repository import SettingsRepository
 import logging
 
 
@@ -61,6 +62,7 @@ class SettingsManager:
     def __init__(self):
         logging.debug("Initializing SettingsManager")
         self.db_path = self._get_db_path()
+        self.repository = SettingsRepository(self.db_path)  # Database layer
         self.anki_db_path = ""
         self.profile = ""
         self.deck_name = ""
@@ -69,9 +71,6 @@ class SettingsManager:
         self.profiles = []
         self._api_key = None
         self._provider_api_keys = {}  # Cache for provider API keys
-
-        if not self._tables_exist():
-            self._create_tables()
 
         self._initialize_anki_settings()
         self._load_api_key()
@@ -192,64 +191,7 @@ class SettingsManager:
 
         return os.path.join(app_data_dir, 'storage.db')
 
-    def _tables_exist(self) -> bool:
-        return (self._key_table_exists() and
-                self._settings_table_exists() and
-                self._provider_api_keys_table_exists())
-
-    def _create_tables(self) -> None:
-        if not self._key_table_exists():
-            self._create_key_table()
-        if not self._settings_table_exists():
-            self._create_settings_table()
-        if not self._provider_api_keys_table_exists():
-            self._create_provider_api_keys_table()
-
-    def _create_settings_table(self) -> None:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)''')
-        conn.commit()
-        conn.close()
-
-    def _create_key_table(self) -> None:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY, encrypted_key BLOB)''')
-        conn.commit()
-        conn.close()
-
-    def _key_table_exists(self) -> bool:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='api_keys';")
-        table_exists = cursor.fetchone()
-        conn.close()
-        return table_exists is not None
-
-    def _settings_table_exists(self) -> bool:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings';")
-        table_exists = cursor.fetchone()
-        conn.close()
-        return table_exists is not None
-
-    def _provider_api_keys_table_exists(self) -> bool:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='provider_api_keys';")
-        table_exists = cursor.fetchone()
-        conn.close()
-        return table_exists is not None
-
-    def _create_provider_api_keys_table(self) -> None:
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS provider_api_keys
-                         (provider TEXT PRIMARY KEY, encrypted_key BLOB)''')
-        conn.commit()
-        conn.close()
+    # Database table management methods removed - now in SettingsRepository
 
     def _try_get_default_anki_db_path(self) -> str:
         if sys.platform == 'win32':
