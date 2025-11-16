@@ -131,6 +131,7 @@ def create_thinking_aware_parser(parser, llm):
         A parser chain that strips thinking traces before parsing
     """
     from langchain.output_parsers import OutputFixingParser
+    from langchain_core.runnables import RunnableLambda
 
     class ThinkingAwareParser:
         """Parser wrapper that strips thinking traces before parsing."""
@@ -163,7 +164,9 @@ def create_thinking_aware_parser(parser, llm):
             """Get format instructions from base parser."""
             return self.base_parser.get_format_instructions()
 
-    return ThinkingAwareParser(parser, llm)
+    # Wrap in RunnableLambda to make it compatible with LangChain chains
+    parser_instance = ThinkingAwareParser(parser, llm)
+    return RunnableLambda(parser_instance.parse)
 
 
 def extract_json_from_mixed_content(text: str) -> str:
