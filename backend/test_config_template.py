@@ -34,7 +34,6 @@ THINKING_MODELS = {
 TEST_EMBEDDING_MODELS = {
     "openai": "text-embedding-3-small",           # OpenAI embedding
     "google": "models/embedding-001",             # Google embedding
-    "openrouter": "qwen/qwen3-embedding-0.6b",    # OpenRouter embedding
     "ollama": "snowflake-arctic-embed2:latest",   # Local Ollama embedding
 }
 
