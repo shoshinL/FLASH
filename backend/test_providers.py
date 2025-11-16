@@ -385,29 +385,16 @@ def test_embedding_support(provider_name: str, api_key: Optional[str], results: 
 
         duration = time.time() - start_time
 
-        if provider_name in ["openai", "google", "ollama"]:
-            # These should support embeddings
-            if supports_embeddings:
-                results.add_result(test_name, provider_name, "PASS", duration,
-                                 {"supports_embeddings": True})
-                print(f"  ✅ {test_name}: PASS")
-            else:
-                results.add_result(test_name, provider_name, "FAIL", duration,
-                                 {"reason": "Provider should support embeddings but doesn't",
-                                  "supports_embeddings": False})
-                print(f"  ❌ {test_name}: FAIL")
+        # All providers should now support embeddings
+        if supports_embeddings:
+            results.add_result(test_name, provider_name, "PASS", duration,
+                             {"supports_embeddings": True})
+            print(f"  ✅ {test_name}: PASS")
         else:
-            # Anthropic and OpenRouter don't support embeddings
-            if not supports_embeddings:
-                results.add_result(test_name, provider_name, "PASS", duration,
-                                 {"supports_embeddings": False,
-                                  "note": "Provider correctly reports no embedding support"})
-                print(f"  ✅ {test_name}: PASS (no embedding support expected)")
-            else:
-                results.add_result(test_name, provider_name, "FAIL", duration,
-                                 {"reason": "Provider reports embedding support unexpectedly",
-                                  "supports_embeddings": True})
-                print(f"  ❌ {test_name}: FAIL")
+            results.add_result(test_name, provider_name, "FAIL", duration,
+                             {"reason": "Provider should support embeddings but doesn't",
+                              "supports_embeddings": False})
+            print(f"  ❌ {test_name}: FAIL")
 
     except Exception as e:
         duration = time.time() - start_time

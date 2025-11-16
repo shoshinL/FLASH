@@ -12,6 +12,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 import requests
 
 
@@ -150,6 +151,16 @@ class AnthropicProvider(LLMProvider):
         "claude-3-haiku-20240307"
     ]
 
+    EMBEDDING_MODELS = [
+        "voyage-3.5",
+        "voyage-3",
+        "voyage-3-lite",
+        "voyage-finance-2",
+        "voyage-multilingual-2",
+        "voyage-law-2",
+        "voyage-code-2"
+    ]
+
     @property
     def name(self) -> str:
         return "anthropic"
@@ -159,7 +170,7 @@ class AnthropicProvider(LLMProvider):
         return True
 
     def supports_embeddings(self) -> bool:
-        return False  # Anthropic doesn't provide embeddings
+        return True  # Anthropic provides Voyage AI embeddings
 
     def get_llm(self, temperature: Optional[float] = None):
         """Get Anthropic LLM instance."""
@@ -177,12 +188,18 @@ class AnthropicProvider(LLMProvider):
         return self.POPULAR_MODELS
 
     def get_available_embedding_models(self) -> List[str]:
-        """Anthropic doesn't provide embedding models."""
-        return []
+        """Get available Voyage AI embedding models."""
+        return self.EMBEDDING_MODELS
 
     def get_embeddings(self, model: Optional[str] = None):
-        """Anthropic doesn't provide embeddings."""
-        raise NotImplementedError("Anthropic does not provide embedding models")
+        """Get Voyage AI embeddings instance (Anthropic's embedding partner)."""
+        if not self.api_key:
+            raise ValueError("Anthropic API key is required for Voyage AI embeddings")
+
+        return VoyageAIEmbeddings(
+            voyage_api_key=self.api_key,
+            model=model or self.embedding_model or "voyage-3"
+        )
 
     def validate_api_key(self) -> bool:
         """Validate Anthropic API key."""
@@ -276,6 +293,13 @@ class OpenRouterProvider(LLMProvider):
         "qwen/qwen-2.5-72b-instruct"
     ]
 
+    EMBEDDING_MODELS = [
+        "qwen/qwen3-embedding-0.6b",
+        "snowflake/snowflake-arctic-embed-l-v2.0",
+        "BAAI/bge-m3",
+        "nvidia/nv-embedqa-e5-v5"
+    ]
+
     @property
     def name(self) -> str:
         return "openrouter"
@@ -285,7 +309,7 @@ class OpenRouterProvider(LLMProvider):
         return True
 
     def supports_embeddings(self) -> bool:
-        return False  # OpenRouter doesn't provide embeddings directly
+        return True  # OpenRouter now provides embeddings
 
     def get_llm(self, temperature: Optional[float] = None):
         """Get OpenRouter LLM instance."""
@@ -305,12 +329,20 @@ class OpenRouterProvider(LLMProvider):
         return self.POPULAR_MODELS
 
     def get_available_embedding_models(self) -> List[str]:
-        """OpenRouter doesn't provide embedding models."""
-        return []
+        """Get available OpenRouter embedding models."""
+        return self.EMBEDDING_MODELS
 
     def get_embeddings(self, model: Optional[str] = None):
-        """OpenRouter doesn't provide embeddings."""
-        raise NotImplementedError("OpenRouter does not provide embedding models")
+        """Get OpenRouter embeddings instance (OpenAI-compatible API)."""
+        if not self.api_key:
+            raise ValueError("OpenRouter API key is required")
+
+        # OpenRouter uses OpenAI-compatible API for embeddings
+        return OpenAIEmbeddings(
+            openai_api_key=self.api_key,
+            openai_api_base="https://openrouter.ai/api/v1",
+            model=model or self.embedding_model or "qwen/qwen3-embedding-0.6b"
+        )
 
     def validate_api_key(self) -> bool:
         """Validate OpenRouter API key."""
@@ -433,4 +465,4 @@ class ProviderFactory:
     @staticmethod
     def get_embedding_providers() -> List[str]:
         """Get list of providers that support embeddings."""
-        return ["openai", "google", "ollama"]
+        return ["openai", "anthropic", "google", "openrouter", "ollama"]

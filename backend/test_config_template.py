@@ -29,12 +29,13 @@ THINKING_MODELS = {
 }
 
 # Embedding models to test for each provider
-# Only include providers you want to test embeddings for
-# Note: anthropic and openrouter don't support embeddings
+# All providers now support embeddings!
 TEST_EMBEDDING_MODELS = {
-    "openai": "text-embedding-3-small",  # Smaller/cheaper for testing
-    "google": "models/embedding-001",    # Default Google embedding
-    "ollama": "nomic-embed-text",        # Popular local embedding model
+    "openai": "text-embedding-3-small",           # OpenAI embedding
+    "anthropic": "voyage-3",                      # Voyage AI (Anthropic partner)
+    "google": "models/embedding-001",             # Google embedding
+    "openrouter": "qwen/qwen3-embedding-0.6b",    # OpenRouter embedding
+    "ollama": "nomic-embed-text",                 # Local Ollama embedding
 }
 
 # Test settings
