@@ -386,15 +386,19 @@ def test_embedding_support(provider_name: str, api_key: Optional[str], results: 
 
         duration = time.time() - start_time
 
-        # All providers should now support embeddings
-        if supports_embeddings:
+        # Check if provider should support embeddings (based on TEST_EMBEDDING_MODELS)
+        should_support_embeddings = provider_name in TEST_EMBEDDING_MODELS
+
+        if supports_embeddings == should_support_embeddings:
             results.add_result(test_name, provider_name, "PASS", duration,
-                             {"supports_embeddings": True})
+                             {"supports_embeddings": supports_embeddings})
             print(f"  ✅ {test_name}: PASS")
         else:
+            expected = "should" if should_support_embeddings else "should not"
             results.add_result(test_name, provider_name, "FAIL", duration,
-                             {"reason": "Provider should support embeddings but doesn't",
-                              "supports_embeddings": False})
+                             {"reason": f"Provider {expected} support embeddings but reports {supports_embeddings}",
+                              "supports_embeddings": supports_embeddings,
+                              "expected": should_support_embeddings})
             print(f"  ❌ {test_name}: FAIL")
 
     except Exception as e:
