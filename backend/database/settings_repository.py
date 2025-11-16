@@ -46,6 +46,7 @@ class SettingsRepository:
         return (
             self._settings_table_exists() and
             self._key_table_exists() and
+            self._api_keys_table_exists() and
             self._provider_api_keys_table_exists()
         )
 
@@ -53,6 +54,7 @@ class SettingsRepository:
         """Create all required database tables."""
         self._create_settings_table()
         self._create_key_table()
+        self._create_api_keys_table()
         self._create_provider_api_keys_table()
         logger.info("Database tables created successfully")
 
@@ -75,13 +77,23 @@ class SettingsRepository:
                 )
             """)
 
+    def _create_api_keys_table(self) -> None:
+        """Create api_keys table for legacy encrypted API key storage."""
+        with self._get_connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id INTEGER PRIMARY KEY,
+                    encrypted_key BLOB
+                )
+            """)
+
     def _create_provider_api_keys_table(self) -> None:
         """Create provider_api_keys table for multi-provider API key storage."""
         with self._get_connection() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS provider_api_keys (
                     provider TEXT PRIMARY KEY,
-                    encrypted_api_key TEXT
+                    encrypted_key BLOB
                 )
             """)
 
@@ -91,6 +103,15 @@ class SettingsRepository:
             cursor = conn.execute("""
                 SELECT name FROM sqlite_master
                 WHERE type='table' AND name='key'
+            """)
+            return cursor.fetchone() is not None
+
+    def _api_keys_table_exists(self) -> bool:
+        """Check if api_keys table exists."""
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT name FROM sqlite_master
+                WHERE type='table' AND name='api_keys'
             """)
             return cursor.fetchone() is not None
 
@@ -179,7 +200,7 @@ class SettingsRepository:
 
     # ========== Provider API Keys Operations ==========
 
-    def get_provider_api_key(self, provider: str) -> Optional[str]:
+    def get_provider_api_key(self, provider: str) -> Optional[bytes]:
         """
         Get encrypted API key for a provider.
 
@@ -187,27 +208,27 @@ class SettingsRepository:
             provider: Provider name (e.g., 'openai', 'anthropic')
 
         Returns:
-            Encrypted API key or None if not found
+            Encrypted API key (bytes) or None if not found
         """
         with self._get_connection() as conn:
             cursor = conn.execute(
-                "SELECT encrypted_api_key FROM provider_api_keys WHERE provider = ?",
+                "SELECT encrypted_key FROM provider_api_keys WHERE provider = ?",
                 (provider,)
             )
             result = cursor.fetchone()
             return result[0] if result else None
 
-    def upsert_provider_api_key(self, provider: str, encrypted_api_key: str) -> None:
+    def upsert_provider_api_key(self, provider: str, encrypted_api_key: bytes) -> None:
         """
         Save encrypted API key for a provider.
 
         Args:
             provider: Provider name
-            encrypted_api_key: Encrypted API key string
+            encrypted_api_key: Encrypted API key (bytes)
         """
         with self._get_connection() as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO provider_api_keys (provider, encrypted_api_key) VALUES (?, ?)",
+                "INSERT OR REPLACE INTO provider_api_keys (provider, encrypted_key) VALUES (?, ?)",
                 (provider, encrypted_api_key)
             )
             conn.commit()
@@ -228,13 +249,13 @@ class SettingsRepository:
             conn.commit()
         logger.info(f"Deleted API key for provider: {provider}")
 
-    def get_all_provider_api_keys(self) -> Dict[str, str]:
+    def get_all_provider_api_keys(self) -> Dict[str, bytes]:
         """
         Get all encrypted provider API keys.
 
         Returns:
-            Dictionary mapping provider names to encrypted API keys
+            Dictionary mapping provider names to encrypted API keys (bytes)
         """
         with self._get_connection() as conn:
-            cursor = conn.execute("SELECT provider, encrypted_api_key FROM provider_api_keys")
+            cursor = conn.execute("SELECT provider, encrypted_key FROM provider_api_keys")
             return {row[0]: row[1] for row in cursor.fetchall()}
