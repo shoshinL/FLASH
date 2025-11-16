@@ -17,6 +17,7 @@ class Answer(BaseModel):
 @require_llm
 def DocumentGrader(llm, question, documents):
     parser = JsonOutputParser(pydantic_object=Score)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a grader assessing relevance
@@ -32,7 +33,7 @@ def DocumentGrader(llm, question, documents):
     input_variables=["question", "document"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return (chain.invoke({"question": question, "document": documents}))
 
 @require_llm
@@ -60,6 +61,7 @@ def AnswerGenerator(llm, question, documents):
 @require_llm
 def HallucinationGrader(llm, answer, documents):
     parser = JsonOutputParser(pydantic_object=Score)
+    fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template=""" <|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a grader assessing whether an answer is grounded in / supported by a set of facts.
@@ -77,7 +79,7 @@ def HallucinationGrader(llm, answer, documents):
     input_variables=["answer", "documents"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
     )
-    chain = prompt | llm | parser
+    chain = prompt | llm | fixing_parser
     return (chain.invoke({"answer": answer, "documents": documents}))
 
 # Define a simple model for the output
