@@ -146,6 +146,10 @@ def create_thinking_aware_parser(parser, llm):
 
         def parse(self, text: str) -> Any:
             """Parse text after removing thinking traces."""
+            # Handle AIMessage objects from LangChain chains
+            if hasattr(text, 'content'):
+                text = text.content
+
             # Handle list input (e.g., from OpenAI reasoning models)
             if isinstance(text, list):
                 text = '\n'.join(
