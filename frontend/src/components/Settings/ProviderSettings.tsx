@@ -636,15 +636,16 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           )}
         </div>
 
-      {/* Apply Embedding Configuration Button */}
-      <div className="settings-item">
-        <button
-          onClick={handleApplyEmbedding}
-          className="apply-button"
-          disabled={!currentEmbeddingModel}
-        >
-          Apply Embedding Configuration
-        </button>
+        {/* Apply Embedding Configuration Button */}
+        <div className="settings-item">
+          <button
+            onClick={handleApplyEmbedding}
+            className="apply-button"
+            disabled={!currentEmbeddingModel}
+          >
+            Apply Embedding Configuration
+          </button>
+        </div>
       </div>
     </div>
   );
