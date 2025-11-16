@@ -38,7 +38,11 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   ollama: "Ollama (Local)"
 };
 
-export function ProviderSettings() {
+interface ProviderSettingsProps {
+  mode: "llm" | "embedding";
+}
+
+export function ProviderSettings({ mode }: ProviderSettingsProps) {
   // LLM Configuration State
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [currentProvider, setCurrentProvider] = useState<string>("openai");
@@ -158,7 +162,7 @@ export function ProviderSettings() {
         } else {
           setAvailableEmbeddingModels([]);
           if (provider === 'ollama') {
-            setEmbeddingError("Ollama is not running or no embedding models are installed. Please start Ollama and pull embedding models (e.g., 'ollama pull nomic-embed-text').");
+            setEmbeddingError("Ollama is not running or no embedding models are installed. Please start Ollama and pull embedding models (e.g., 'ollama pull snowflake-arctic-embed2:latest').");
           } else {
             setEmbeddingError(response.error || "Failed to fetch embedding models");
           }
@@ -299,12 +303,14 @@ export function ProviderSettings() {
     return <div className="provider-settings-loading">Loading provider settings...</div>;
   }
 
-  return (
-    <div className="provider-settings-container">
-      <h3>Model Provider Configuration</h3>
+  // Render LLM Provider settings
+  if (mode === "llm") {
+    return (
+      <div className="provider-settings-container">
+        <h3>LLM Provider Configuration</h3>
 
-      {error && <div className="error-message">{error}</div>}
-      {successMessage && <div className="success-message">{successMessage}</div>}
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
 
       {/* Provider Selection */}
       <div className="settings-item">
@@ -382,17 +388,23 @@ export function ProviderSettings() {
         )}
       </div>
 
-      {/* Apply Button */}
-      <div className="settings-item">
-        <button
-          onClick={handleApplyProvider}
-          className="apply-button"
-          disabled={!currentModel}
-        >
-          Apply Provider Configuration
-        </button>
+        {/* Apply Button */}
+        <div className="settings-item">
+          <button
+            onClick={handleApplyProvider}
+            className="apply-button"
+            disabled={!currentModel}
+          >
+            Apply LLM Configuration
+          </button>
+        </div>
       </div>
+    );
+  }
 
+  // Render Embedding Provider settings
+  return (
+    <div className="provider-settings-container">
       {/* Embedding Configuration Section */}
       <div className="embedding-settings-section">
         <h3>Embedding Model Configuration</h3>
@@ -451,7 +463,7 @@ export function ProviderSettings() {
           ) : (
             <div className="no-models">
               {currentEmbeddingProvider === 'ollama'
-                ? 'No Ollama embedding models found. Please install models using "ollama pull nomic-embed-text"'
+                ? 'No Ollama embedding models found. Please install models using "ollama pull snowflake-arctic-embed2:latest"'
                 : requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider)
                 ? 'Please set an API key first'
                 : 'No embedding models available'}
@@ -459,24 +471,15 @@ export function ProviderSettings() {
           )}
         </div>
 
-        {/* Apply Embedding Configuration Button */}
-        <div className="settings-item">
-          <button
-            onClick={handleApplyEmbedding}
-            className="apply-button"
-            disabled={!currentEmbeddingModel}
-          >
-            Apply Embedding Configuration
-          </button>
-        </div>
-      </div>
-
-      {/* Provider Info */}
-      <div className="provider-info">
-        <h4>About this provider:</h4>
-        <div className="provider-description">
-          {getProviderDescription(currentProvider)}
-        </div>
+      {/* Apply Embedding Configuration Button */}
+      <div className="settings-item">
+        <button
+          onClick={handleApplyEmbedding}
+          className="apply-button"
+          disabled={!currentEmbeddingModel}
+        >
+          Apply Embedding Configuration
+        </button>
       </div>
     </div>
   );
@@ -519,15 +522,4 @@ function isEmbeddingConfig(obj: any): obj is EmbeddingConfig {
     (obj.model === null || typeof obj.model === "string") &&
     typeof obj.success === "boolean"
   );
-}
-
-function getProviderDescription(provider: string): string {
-  const descriptions: Record<string, string> = {
-    openai: "OpenAI provides GPT models including o1, o3-mini (reasoning models), and GPT-4o for general tasks. Requires an OpenAI API key.",
-    anthropic: "Anthropic provides Claude models, known for being helpful, harmless, and honest. Supports long context windows. Requires an Anthropic API key.",
-    google: "Google provides Gemini models with multimodal capabilities. Includes thinking models like Gemini 2.0 Flash Thinking. Requires a Google AI API key.",
-    openrouter: "OpenRouter provides access to multiple AI models through a single API. Great for trying different models. Requires an OpenRouter API key.",
-    ollama: "Ollama runs LLM models locally on your machine. No API key required. Install models using 'ollama pull <model-name>' in your terminal."
-  };
-  return descriptions[provider] || "No description available.";
 }
