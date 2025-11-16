@@ -146,6 +146,13 @@ def create_thinking_aware_parser(parser, llm):
 
         def parse(self, text: str) -> Any:
             """Parse text after removing thinking traces."""
+            # Handle list input (e.g., from OpenAI reasoning models)
+            if isinstance(text, list):
+                text = '\n'.join(
+                    block.get('text', '') if isinstance(block, dict) else str(block)
+                    for block in text
+                )
+
             # First attempt: strip thinking and parse directly
             cleaned = preprocess_llm_output(text, strict=True)
             try:

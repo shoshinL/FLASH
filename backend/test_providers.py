@@ -556,6 +556,7 @@ def test_thinking_model(provider_name: str, api_key: Optional[str], results: Tes
 
         response = llm.invoke(prompt)
         # thinking_parser is a RunnableLambda, so use invoke() instead of parse()
+        # The parser now handles both string and list content formats
         parsed = thinking_parser.invoke(response.content)
 
         duration = time.time() - start_time
