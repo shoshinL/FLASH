@@ -21,7 +21,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(__file__))
 
 try:
-    from test_config_local import API_KEYS, TEST_MODELS, THINKING_MODELS, TEST_SETTINGS, TEST_QUESTIONS, TEST_DOCUMENT_CHUNK
+    from test_config_local import API_KEYS, TEST_MODELS, THINKING_MODELS, TEST_SETTINGS, TEST_QUESTIONS, TEST_DOCUMENT_CHUNK, TEST_EMBEDDING_MODELS
 except ImportError:
     print("❌ ERROR: test_config_local.py not found!")
     print("📝 Please copy test_config_template.py to test_config_local.py and add your API keys.")
@@ -422,12 +422,12 @@ def test_embedding_generation(provider_name: str, api_key: Optional[str], result
     start_time = time.time()
 
     try:
-        # Skip if provider doesn't support embeddings
-        if provider_name not in ["openai", "google", "ollama"]:
+        # Skip if provider not in TEST_EMBEDDING_MODELS
+        if provider_name not in TEST_EMBEDDING_MODELS:
             duration = time.time() - start_time
             results.add_result(test_name, provider_name, "SKIP", duration,
-                             {"reason": "Provider does not support embeddings"})
-            print(f"  ⏭️  {test_name}: SKIP (no embedding support)")
+                             {"reason": f"No embedding model configured for {provider_name} in TEST_EMBEDDING_MODELS"})
+            print(f"  ⏭️  {test_name}: SKIP (no embedding model configured)")
             return
 
         if provider_name != "ollama" and not api_key:
@@ -437,21 +437,32 @@ def test_embedding_generation(provider_name: str, api_key: Optional[str], result
             print(f"  ⏭️  {test_name}: SKIP (no API key)")
             return
 
+        # Get configured embedding model
+        embedding_model = TEST_EMBEDDING_MODELS[provider_name]
+
         # Get provider instance
         if provider_name == "ollama":
             provider = ProviderFactory.get_provider(provider_name)
         else:
             provider = ProviderFactory.get_provider(provider_name, api_key=api_key)
 
-        # Get available embedding models
-        embedding_models = provider.get_available_embedding_models()
+        # Verify provider supports embeddings
+        if not provider.supports_embeddings():
+            duration = time.time() - start_time
+            results.add_result(test_name, provider_name, "FAIL", duration,
+                             {"reason": f"{provider_name} does not support embeddings"})
+            print(f"  ❌ {test_name}: FAIL (no embedding support)")
+            return
 
-        if not embedding_models:
+        # Get available embedding models to verify configured model exists
+        available_models = provider.get_available_embedding_models()
+
+        if not available_models:
             duration = time.time() - start_time
             if provider_name == "ollama":
                 results.add_result(test_name, provider_name, "SKIP", duration,
                                  {"reason": "No Ollama embedding models installed",
-                                  "suggestion": "Run: ollama pull nomic-embed-text"})
+                                  "suggestion": f"Run: ollama pull {embedding_model}"})
                 print(f"  ⏭️  {test_name}: SKIP (no Ollama embedding models)")
             else:
                 results.add_result(test_name, provider_name, "FAIL", duration,
@@ -459,8 +470,10 @@ def test_embedding_generation(provider_name: str, api_key: Optional[str], result
                 print(f"  ❌ {test_name}: FAIL (no models)")
             return
 
-        # Use the first available model
-        embedding_model = embedding_models[0]
+        # Warn if configured model not in available models (but still try to use it)
+        if embedding_model not in available_models:
+            print(f"  ⚠️  Warning: Configured model '{embedding_model}' not found in available models: {available_models}")
+            print(f"      Will attempt to use it anyway...")
 
         # Create embeddings instance
         embeddings = provider.get_embeddings(model=embedding_model)
