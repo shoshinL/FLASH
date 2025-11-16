@@ -30,10 +30,9 @@ THINKING_MODELS = {
 }
 
 # Embedding models to test for each provider
-# All providers now support embeddings!
+# Anthropic does not provide embeddings
 TEST_EMBEDDING_MODELS = {
     "openai": "text-embedding-3-small",           # OpenAI embedding
-    "anthropic": "voyage-3",                      # Voyage AI (Anthropic partner)
     "google": "models/embedding-001",             # Google embedding
     "openrouter": "qwen/qwen3-embedding-0.6b",    # OpenRouter embedding
     "ollama": "snowflake-arctic-embed2:latest",   # Local Ollama embedding

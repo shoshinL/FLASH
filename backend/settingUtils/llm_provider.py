@@ -105,11 +105,22 @@ class OpenAIProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
 
-        return ChatOpenAI(
-            openai_api_key=self.api_key,
-            model=self.model or "gpt-4o-mini",
-            temperature=temperature if temperature is not None else self.temperature
-        )
+        model = self.model or "gpt-4o-mini"
+
+        # Reasoning models (o1, o3-mini, etc.) don't support temperature parameter
+        reasoning_models = ["o1", "o1-mini", "o1-preview", "o3-mini"]
+        is_reasoning_model = any(model.startswith(rm) for rm in reasoning_models)
+
+        kwargs = {
+            "openai_api_key": self.api_key,
+            "model": model,
+        }
+
+        # Only add temperature if not a reasoning model
+        if not is_reasoning_model:
+            kwargs["temperature"] = temperature if temperature is not None else self.temperature
+
+        return ChatOpenAI(**kwargs)
 
     def get_available_models(self) -> List[str]:
         """Get available OpenAI models."""
@@ -151,16 +162,6 @@ class AnthropicProvider(LLMProvider):
         "claude-3-haiku-20240307"
     ]
 
-    EMBEDDING_MODELS = [
-        "voyage-3.5",
-        "voyage-3",
-        "voyage-3-lite",
-        "voyage-finance-2",
-        "voyage-multilingual-2",
-        "voyage-law-2",
-        "voyage-code-2"
-    ]
-
     @property
     def name(self) -> str:
         return "anthropic"
@@ -170,7 +171,7 @@ class AnthropicProvider(LLMProvider):
         return True
 
     def supports_embeddings(self) -> bool:
-        return True  # Anthropic provides Voyage AI embeddings
+        return False  # Anthropic doesn't provide embeddings
 
     def get_llm(self, temperature: Optional[float] = None):
         """Get Anthropic LLM instance."""
@@ -188,18 +189,12 @@ class AnthropicProvider(LLMProvider):
         return self.POPULAR_MODELS
 
     def get_available_embedding_models(self) -> List[str]:
-        """Get available Voyage AI embedding models."""
-        return self.EMBEDDING_MODELS
+        """Anthropic doesn't provide embedding models."""
+        return []
 
     def get_embeddings(self, model: Optional[str] = None):
-        """Get Voyage AI embeddings instance (Anthropic's embedding partner)."""
-        if not self.api_key:
-            raise ValueError("Anthropic API key is required for Voyage AI embeddings")
-
-        return VoyageAIEmbeddings(
-            voyage_api_key=self.api_key,
-            model=model or self.embedding_model or "voyage-3"
-        )
+        """Anthropic doesn't provide embeddings."""
+        raise NotImplementedError("Anthropic does not provide embedding models")
 
     def validate_api_key(self) -> bool:
         """Validate Anthropic API key."""
@@ -465,4 +460,4 @@ class ProviderFactory:
     @staticmethod
     def get_embedding_providers() -> List[str]:
         """Get list of providers that support embeddings."""
-        return ["openai", "anthropic", "google", "openrouter", "ollama"]
+        return ["openai", "google", "openrouter", "ollama"]

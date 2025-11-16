@@ -28,7 +28,7 @@ except ImportError:
     sys.exit(1)
 
 from settingUtils.llm_provider import ProviderFactory
-from agents.parser_utils import preprocess_llm_output, strip_thinking_traces, create_thinking_aware_parser
+from agents.parser_utils import preprocess_llm_output, strip_thinking_traces, strip_thinking_from_json, create_thinking_aware_parser
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
@@ -337,7 +337,8 @@ def test_thinking_trace_removal(provider_name: str, api_key: Optional[str], resu
         failed_cases = []
 
         for input_text, expected_contains in test_cases:
-            cleaned = strip_thinking_traces(input_text)
+            # Use strip_thinking_from_json for comprehensive removal (both XML and JSON)
+            cleaned = strip_thinking_from_json(input_text)
             if expected_contains not in cleaned:
                 all_passed = False
                 failed_cases.append({
