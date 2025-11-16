@@ -4,65 +4,23 @@ import os
 import sys
 import json
 from typing import Dict, List, Any, Optional
-from cryptography.fernet import Fernet
 
 from anki.collection_manager import AnkiCollectionManager
 from anki.db_access import get_profiles, get_sync_auth
 from anki.errors import DBError
 from database.settings_repository import SettingsRepository
+from security.crypto_manager import get_crypto_manager
 import logging
 
 
-def _get_or_create_encryption_key() -> bytes:
-    """
-    Get or create encryption key for secure storage of API keys.
-
-    The key is generated once and stored in the user's data directory.
-    This is more secure than hardcoding a key in the source code.
-
-    Returns:
-        bytes: The Fernet encryption key
-    """
-    # Determine the key file location (same directory as database)
-    if sys.platform == "win32":
-        data_dir = os.path.join(os.getenv('APPDATA'), 'Flash-for-Anki')
-    elif sys.platform == "darwin":
-        data_dir = os.path.join(os.path.expanduser('~/Library/Application Support/Flash-for-Anki'))
-    else:  # Linux and other Unix-like systems
-        data_dir = os.path.join(os.path.expanduser('~/.local/share/Flash-for-Anki'))
-
-    # Ensure directory exists
-    os.makedirs(data_dir, exist_ok=True)
-
-    key_file = os.path.join(data_dir, '.encryption_key')
-
-    # Load existing key or generate new one
-    if os.path.exists(key_file):
-        with open(key_file, 'rb') as f:
-            key = f.read()
-        logging.debug("Loaded existing encryption key")
-    else:
-        # Generate new key
-        key = Fernet.generate_key()
-        # Save key to file with restricted permissions
-        with open(key_file, 'wb') as f:
-            f.write(key)
-        # Set file permissions to be readable only by owner (Unix-like systems)
-        if sys.platform != "win32":
-            os.chmod(key_file, 0o600)
-        logging.info("Generated new encryption key")
-
-    return key
-
-
-# Initialize Fernet with the encryption key
-fernet = Fernet(_get_or_create_encryption_key())
+# Encryption management moved to security/crypto_manager.py
 
 class SettingsManager:
     def __init__(self):
         logging.debug("Initializing SettingsManager")
         self.db_path = self._get_db_path()
         self.repository = SettingsRepository(self.db_path)  # Database layer
+        self.crypto_manager = get_crypto_manager()  # Encryption layer
         self.anki_db_path = ""
         self.profile = ""
         self.deck_name = ""
@@ -117,7 +75,7 @@ class SettingsManager:
         encrypted_key = cursor.fetchone()
         conn.close()
         if encrypted_key:
-            self._api_key = fernet.decrypt(encrypted_key[0]).decode()
+            self._api_key = self.crypto_manager.decrypt(encrypted_key[0]).decode()
             logging.debug("API key loaded successfully")
         else:
             logging.debug("No API key found in database")
@@ -384,7 +342,7 @@ class SettingsManager:
 
     def _upsert_api_key(self, api_key: str) -> None:
         api_key = api_key.strip()
-        encrypted_key = fernet.encrypt(api_key.encode())
+        encrypted_key = self.crypto_manager.encrypt(api_key.encode())
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -422,7 +380,7 @@ class SettingsManager:
         self._provider_api_keys = {}
         for provider, encrypted_key in rows:
             try:
-                decrypted_key = fernet.decrypt(encrypted_key).decode()
+                decrypted_key = self.crypto_manager.decrypt(encrypted_key).decode()
                 self._provider_api_keys[provider] = decrypted_key
             except Exception as e:
                 logging.error(f"Failed to decrypt API key for {provider}: {e}")
@@ -431,7 +389,7 @@ class SettingsManager:
 
     def set_provider_api_key(self, provider: str, api_key: str) -> None:
         """Set API key for a specific provider."""
-        encrypted_key = fernet.encrypt(api_key.strip().encode())
+        encrypted_key = self.crypto_manager.encrypt(api_key.strip().encode())
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
