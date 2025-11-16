@@ -600,3 +600,46 @@ class SettingsManager:
                 api_key=api_key,
                 embedding_model=model
             )
+
+    # ========== Thinking/Reasoning Configuration Methods ==========
+
+    def get_thinking_config(self) -> Dict[str, Any]:
+        """Get thinking/reasoning configuration."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key = 'thinking_config';")
+        config_row = cursor.fetchone()
+        conn.close()
+
+        if config_row:
+            try:
+                return json.loads(config_row[0])
+            except json.JSONDecodeError:
+                logging.error("Failed to parse thinking config JSON")
+                return self._default_thinking_config()
+        else:
+            return self._default_thinking_config()
+
+    def _default_thinking_config(self) -> Dict[str, Any]:
+        """Get default thinking configuration."""
+        return {
+            'enabled': False,
+            'budget_tokens': 2000,      # For Claude
+            'effort': 'medium',         # For OpenAI (low/medium/high)
+            'summary': 'auto'           # For OpenAI (auto/concise/detailed)
+        }
+
+    def set_thinking_config(self, config: Dict[str, Any]) -> None:
+        """Set thinking/reasoning configuration."""
+        # Merge with defaults to ensure all fields are present
+        full_config = self._default_thinking_config()
+        full_config.update(config)
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO settings (key, value) VALUES ('thinking_config', ?)
+        ''', (json.dumps(full_config),))
+        conn.commit()
+        conn.close()
+        logging.debug(f"Thinking config set: {full_config}")

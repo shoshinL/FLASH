@@ -495,7 +495,7 @@ def test_embedding_generation(provider_name: str, api_key: Optional[str], result
 
 
 def test_thinking_model(provider_name: str, api_key: Optional[str], results: TestResults):
-    """Test 9: Thinking model support (if enabled)."""
+    """Test 9: Thinking model support and configuration."""
     test_name = "Thinking Model Support"
 
     if not TEST_SETTINGS.get("test_thinking_models", False):
@@ -529,7 +529,23 @@ def test_thinking_model(provider_name: str, api_key: Optional[str], results: Tes
                 model=THINKING_MODELS[provider_name]
             )
 
-        llm = provider.get_llm()
+        # Check if provider supports thinking
+        supports_thinking = provider.supports_thinking()
+
+        if not supports_thinking:
+            results.add_result(test_name, provider_name, "SKIP", 0,
+                             {"reason": f"Model {THINKING_MODELS[provider_name]} doesn't support thinking"})
+            return
+
+        # Test with thinking configuration enabled
+        thinking_config = {
+            "enabled": True,
+            "budget_tokens": 2000,     # For Claude
+            "effort": "medium",         # For OpenAI
+            "summary": "auto"           # For OpenAI
+        }
+
+        llm = provider.get_llm(thinking_config=thinking_config)
         parser = JsonOutputParser(pydantic_object=Questions)
         thinking_parser = create_thinking_aware_parser(parser, llm)
 
@@ -546,7 +562,9 @@ def test_thinking_model(provider_name: str, api_key: Optional[str], results: Tes
         if parsed and 'Questions' in parsed:
             results.add_result(test_name, provider_name, "PASS", duration,
                              {"model": THINKING_MODELS[provider_name],
-                              "questions_generated": len(parsed['Questions'])})
+                              "supports_thinking": True,
+                              "questions_generated": len(parsed['Questions']),
+                              "thinking_enabled": True})
         else:
             results.add_result(test_name, provider_name, "FAIL", duration,
                              {"reason": "Failed to parse thinking model output",

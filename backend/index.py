@@ -405,6 +405,51 @@ class Api:
             logger.error(f"Error setting embedding config: {e}")
             return {"success": False, "error": str(e)}
 
+    # ========== Thinking/Reasoning Configuration API Endpoints ==========
+
+    def get_thinking_config(self):
+        """Get thinking/reasoning configuration."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            config = settings_manager.get_thinking_config()
+            return config
+        except Exception as e:
+            logger.error(f"Error getting thinking config: {e}")
+            return {
+                "enabled": False,
+                "budget_tokens": 2000,
+                "effort": "medium",
+                "summary": "auto"
+            }
+
+    def set_thinking_config(self, config):
+        """Set thinking/reasoning configuration."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            settings_manager.set_thinking_config(config)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error setting thinking config: {e}")
+            return {"success": False, "error": str(e)}
+
+    def check_thinking_support(self, provider, model):
+        """Check if a provider/model supports thinking/reasoning."""
+        from settingUtils.llm_provider import ProviderFactory
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            api_key = settings_manager.get_provider_api_key(provider)
+
+            if provider == 'ollama':
+                provider_instance = ProviderFactory.get_provider(provider, model=model)
+            else:
+                provider_instance = ProviderFactory.get_provider(provider, api_key=api_key, model=model)
+
+            supports_thinking = provider_instance.supports_thinking()
+            return {"supports_thinking": supports_thinking, "success": True}
+        except Exception as e:
+            logger.error(f"Error checking thinking support for {provider}/{model}: {e}")
+            return {"supports_thinking": False, "success": False, "error": str(e)}
+
 
 def get_entrypoint():
     def exists(path):

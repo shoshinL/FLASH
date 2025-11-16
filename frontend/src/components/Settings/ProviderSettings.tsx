@@ -14,6 +14,13 @@ interface EmbeddingConfig {
   success: boolean;
 }
 
+interface ThinkingConfig {
+  enabled: boolean;
+  budget_tokens: number;
+  effort: string;
+  summary: string;
+}
+
 interface ProvidersResponse {
   providers: string[];
   success?: boolean;
@@ -64,6 +71,13 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   const [embeddingError, setEmbeddingError] = useState<string | null>(null);
   const [embeddingSuccessMessage, setEmbeddingSuccessMessage] = useState<string | null>(null);
 
+  // Thinking/Reasoning Configuration State
+  const [thinkingEnabled, setThinkingEnabled] = useState<boolean>(false);
+  const [thinkingBudget, setThinkingBudget] = useState<number>(2000);
+  const [reasoningEffort, setReasoningEffort] = useState<string>("medium");
+  const [reasoningSummary, setReasoningSummary] = useState<string>("auto");
+  const [providerSupportsThinking, setProviderSupportsThinking] = useState<boolean>(false);
+
   useEffect(() => {
     fetchProviderData();
   }, []);
@@ -79,6 +93,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       fetchAvailableEmbeddingModels(currentEmbeddingProvider);
     }
   }, [currentEmbeddingProvider]);
+
+  useEffect(() => {
+    // Check if provider/model supports thinking whenever they change
+    if (currentProvider && currentModel) {
+      checkThinkingSupport();
+    }
+  }, [currentProvider, currentModel]);
+
+  useEffect(() => {
+    // Fetch thinking configuration on load
+    fetchThinkingConfig();
+  }, []);
 
   const fetchProviderData = async () => {
     setLoading(true);
@@ -299,6 +325,58 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     return !!apiKeys[provider];
   };
 
+  const fetchThinkingConfig = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.get_thinking_config();
+      if (isThinkingConfig(response)) {
+        setThinkingEnabled(response.enabled);
+        setThinkingBudget(response.budget_tokens);
+        setReasoningEffort(response.effort);
+        setReasoningSummary(response.summary);
+      }
+    } catch (err) {
+      console.error("Error fetching thinking config:", err);
+    }
+  };
+
+  const checkThinkingSupport = async () => {
+    try {
+      const response: unknown = await window.pywebview.api.check_thinking_support(currentProvider, currentModel);
+      if (typeof response === "object" && response !== null && "supports_thinking" in response) {
+        setProviderSupportsThinking(Boolean(response.supports_thinking));
+      }
+    } catch (err) {
+      console.error("Error checking thinking support:", err);
+      setProviderSupportsThinking(false);
+    }
+  };
+
+  const handleThinkingConfigChange = async (updates: Partial<ThinkingConfig>) => {
+    const newConfig = {
+      enabled: thinkingEnabled,
+      budget_tokens: thinkingBudget,
+      effort: reasoningEffort,
+      summary: reasoningSummary,
+      ...updates
+    };
+
+    // Update local state
+    if ('enabled' in updates) setThinkingEnabled(updates.enabled!);
+    if ('budget_tokens' in updates) setThinkingBudget(updates.budget_tokens!);
+    if ('effort' in updates) setReasoningEffort(updates.effort!);
+    if ('summary' in updates) setReasoningSummary(updates.summary!);
+
+    // Save to backend
+    try {
+      await window.pywebview.api.set_thinking_config(newConfig);
+      setSuccessMessage("Thinking configuration updated!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error("Error saving thinking config:", err);
+      setError("Failed to save thinking configuration");
+    }
+  };
+
   if (loading) {
     return <div className="provider-settings-loading">Loading provider settings...</div>;
   }
@@ -387,6 +465,93 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           </div>
         )}
       </div>
+
+      {/* Thinking/Reasoning Configuration */}
+      {providerSupportsThinking && (
+        <div className="thinking-config-section">
+          <h4>Thinking/Reasoning Settings</h4>
+
+          {/* Enable/Disable Toggle */}
+          <div className="settings-item">
+            <label>
+              <input
+                type="checkbox"
+                checked={thinkingEnabled}
+                onChange={(e) => handleThinkingConfigChange({ enabled: e.target.checked })}
+              />
+              Enable Extended Thinking/Reasoning
+            </label>
+            <p className="hint">
+              Extended thinking allows the model to spend more time reasoning before responding
+            </p>
+          </div>
+
+          {thinkingEnabled && (
+            <>
+              {/* Claude: Budget Tokens */}
+              {currentProvider === 'anthropic' && (
+                <div className="settings-item">
+                  <label>Thinking Budget (tokens):</label>
+                  <input
+                    type="number"
+                    value={thinkingBudget}
+                    onChange={(e) => handleThinkingConfigChange({ budget_tokens: Number(e.target.value) })}
+                    min={500}
+                    max={10000}
+                    step={500}
+                    className="thinking-input"
+                  />
+                  <span className="hint">
+                    More tokens = deeper thinking (costs more)
+                  </span>
+                </div>
+              )}
+
+              {/* OpenAI: Reasoning Effort */}
+              {currentProvider === 'openai' && (
+                <>
+                  <div className="settings-item">
+                    <label>Reasoning Effort:</label>
+                    <select
+                      value={reasoningEffort}
+                      onChange={(e) => handleThinkingConfigChange({ effort: e.target.value })}
+                      className="thinking-select"
+                    >
+                      <option value="low">Low (faster, cheaper)</option>
+                      <option value="medium">Medium (balanced)</option>
+                      <option value="high">High (slower, more thorough)</option>
+                    </select>
+                  </div>
+
+                  <div className="settings-item">
+                    <label>Reasoning Summary:</label>
+                    <select
+                      value={reasoningSummary}
+                      onChange={(e) => handleThinkingConfigChange({ summary: e.target.value })}
+                      className="thinking-select"
+                    >
+                      <option value="auto">Auto</option>
+                      <option value="concise">Concise</option>
+                      <option value="detailed">Detailed</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Google/Ollama: Info only */}
+              {(currentProvider === 'google' || currentProvider === 'ollama') && (
+                <div className="settings-item">
+                  <p className="hint">
+                    {currentProvider === 'google'
+                      ? 'Thinking mode is enabled for this model'
+                      : 'This model supports native thinking mode'}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
         {/* Apply Button */}
         <div className="settings-item">
@@ -521,5 +686,15 @@ function isEmbeddingConfig(obj: any): obj is EmbeddingConfig {
     typeof obj.provider === "string" &&
     (obj.model === null || typeof obj.model === "string") &&
     typeof obj.success === "boolean"
+  );
+}
+
+function isThinkingConfig(obj: any): obj is ThinkingConfig {
+  return (
+    typeof obj === "object" &&
+    typeof obj.enabled === "boolean" &&
+    typeof obj.budget_tokens === "number" &&
+    typeof obj.effort === "string" &&
+    typeof obj.summary === "string"
   );
 }

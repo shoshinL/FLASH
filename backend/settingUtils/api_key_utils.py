@@ -30,6 +30,7 @@ def require_llm(func):
     def wrapper(*args, **kwargs):
         settings_manager = SettingsContext.get_settings_manager()
         provider_config = settings_manager.get_provider_config()
+        thinking_config = settings_manager.get_thinking_config()
 
         provider_name = provider_config.get('provider', 'openai')
         model = provider_config.get('model')
@@ -53,9 +54,14 @@ def require_llm(func):
                     model=model
                 )
 
-            # Get LLM instance
-            llm = provider.get_llm()
-            logging.debug(f"Using {provider_name} provider with model {model}")
+            # Get LLM instance with thinking configuration
+            # Only pass thinking_config if it's enabled
+            if thinking_config.get('enabled', False) and provider.supports_thinking():
+                llm = provider.get_llm(thinking_config=thinking_config)
+                logging.debug(f"Using {provider_name} provider with model {model} and thinking enabled")
+            else:
+                llm = provider.get_llm()
+                logging.debug(f"Using {provider_name} provider with model {model}")
 
             return func(llm, *args, **kwargs)
 

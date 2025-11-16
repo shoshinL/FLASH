@@ -27,8 +27,20 @@ class LLMProvider(ABC):
         self.temperature = 1e-7  # Default very low temperature for consistency
 
     @abstractmethod
-    def get_llm(self, temperature: Optional[float] = None):
-        """Get the LLM instance for this provider."""
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
+        """
+        Get the LLM instance for this provider.
+
+        Args:
+            temperature: Optional temperature override
+            thinking_config: Optional thinking/reasoning configuration
+                {
+                    "enabled": bool,
+                    "budget_tokens": int,  # For Claude
+                    "effort": str,         # For OpenAI (low/medium/high)
+                    "summary": str         # For OpenAI (auto/concise/detailed)
+                }
+        """
         pass
 
     @abstractmethod
@@ -54,6 +66,11 @@ class LLMProvider(ABC):
     @abstractmethod
     def validate_api_key(self) -> bool:
         """Validate the API key by making a test call."""
+        pass
+
+    @abstractmethod
+    def supports_thinking(self) -> bool:
+        """Whether this provider/model supports thinking/reasoning controls."""
         pass
 
     @property
@@ -100,7 +117,13 @@ class OpenAIProvider(LLMProvider):
     def supports_embeddings(self) -> bool:
         return True
 
-    def get_llm(self, temperature: Optional[float] = None):
+    def supports_thinking(self) -> bool:
+        """OpenAI o-series models support reasoning controls."""
+        model = self.model or "gpt-4o-mini"
+        reasoning_models = ["o1", "o1-mini", "o1-preview", "o3-mini"]
+        return any(model.startswith(rm) for rm in reasoning_models)
+
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get OpenAI LLM instance."""
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
@@ -116,8 +139,15 @@ class OpenAIProvider(LLMProvider):
             "model": model,
         }
 
-        # Only add temperature if not a reasoning model
-        if not is_reasoning_model:
+        # Reasoning models get reasoning config if enabled
+        if is_reasoning_model and thinking_config and thinking_config.get("enabled"):
+            # OpenAI reasoning models support 'reasoning' parameter
+            kwargs["reasoning"] = {
+                "effort": thinking_config.get("effort", "medium"),
+                "summary": thinking_config.get("summary", "auto")
+            }
+        # Standard models get temperature
+        elif not is_reasoning_model:
             kwargs["temperature"] = temperature if temperature is not None else self.temperature
 
         return ChatOpenAI(**kwargs)
@@ -173,16 +203,29 @@ class AnthropicProvider(LLMProvider):
     def supports_embeddings(self) -> bool:
         return False  # Anthropic doesn't provide embeddings
 
-    def get_llm(self, temperature: Optional[float] = None):
+    def supports_thinking(self) -> bool:
+        """All Claude models support extended thinking."""
+        return True
+
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get Anthropic LLM instance."""
         if not self.api_key:
             raise ValueError("Anthropic API key is required")
 
-        return ChatAnthropic(
-            anthropic_api_key=self.api_key,
-            model=self.model or "claude-3-5-sonnet-20241022",
-            temperature=temperature if temperature is not None else self.temperature
-        )
+        kwargs = {
+            "anthropic_api_key": self.api_key,
+            "model": self.model or "claude-3-5-sonnet-20241022",
+            "temperature": temperature if temperature is not None else self.temperature
+        }
+
+        # Add extended thinking if enabled
+        if thinking_config and thinking_config.get("enabled"):
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": thinking_config.get("budget_tokens", 2000)
+            }
+
+        return ChatAnthropic(**kwargs)
 
     def get_available_models(self) -> List[str]:
         """Get available Anthropic models."""
@@ -223,6 +266,12 @@ class GoogleProvider(LLMProvider):
         "models/text-embedding-004"
     ]
 
+    THINKING_MODELS = [
+        "gemini-2.0-flash-thinking-exp-1219",
+        "gemini-2.0-flash-thinking-exp",
+        "gemini-2.5-flash-lite"
+    ]
+
     @property
     def name(self) -> str:
         return "google"
@@ -234,16 +283,26 @@ class GoogleProvider(LLMProvider):
     def supports_embeddings(self) -> bool:
         return True
 
-    def get_llm(self, temperature: Optional[float] = None):
+    def supports_thinking(self) -> bool:
+        """Specific Gemini models support thinking mode."""
+        model = self.model or "gemini-2.0-flash-exp"
+        return model in self.THINKING_MODELS or "thinking" in model.lower()
+
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get Google Gemini LLM instance."""
         if not self.api_key:
             raise ValueError("Google API key is required")
 
-        return ChatGoogleGenerativeAI(
-            google_api_key=self.api_key,
-            model=self.model or "gemini-2.0-flash-exp",
-            temperature=temperature if temperature is not None else self.temperature
-        )
+        kwargs = {
+            "google_api_key": self.api_key,
+            "model": self.model or "gemini-2.0-flash-exp",
+            "temperature": temperature if temperature is not None else self.temperature
+        }
+
+        # Note: Google's thinking mode is model-specific, enabled by using thinking models
+        # No additional configuration parameters needed beyond model selection
+
+        return ChatGoogleGenerativeAI(**kwargs)
 
     def get_available_models(self) -> List[str]:
         """Get available Google models."""
@@ -306,7 +365,13 @@ class OpenRouterProvider(LLMProvider):
     def supports_embeddings(self) -> bool:
         return True  # OpenRouter now provides embeddings
 
-    def get_llm(self, temperature: Optional[float] = None):
+    def supports_thinking(self) -> bool:
+        """OpenRouter thinking support depends on underlying model (complex to determine)."""
+        # For simplicity, return False for now
+        # Users can select thinking-capable models through the provider
+        return False
+
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get OpenRouter LLM instance."""
         if not self.api_key:
             raise ValueError("OpenRouter API key is required")
@@ -371,13 +436,25 @@ class OllamaProvider(LLMProvider):
     def supports_embeddings(self) -> bool:
         return True
 
-    def get_llm(self, temperature: Optional[float] = None):
+    def supports_thinking(self) -> bool:
+        """Ollama supports thinking for qwen models and models with 'think' in name."""
+        model = self.model or "llama3.2"
+        return "qwen" in model.lower() or "think" in model.lower()
+
+    def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get Ollama LLM instance."""
-        return ChatOllama(
-            model=self.model or "llama3.2",
-            temperature=temperature if temperature is not None else self.temperature,
-            base_url=self.base_url
-        )
+        kwargs = {
+            "model": self.model or "llama3.2",
+            "temperature": temperature if temperature is not None else self.temperature,
+            "base_url": self.base_url
+        }
+
+        # Note: Ollama thinking support is model-specific
+        # Some models like qwen support thinking mode natively
+        # The --think flag is a CLI parameter, not API parameter
+        # Thinking behavior is controlled by the model itself
+
+        return ChatOllama(**kwargs)
 
     def get_available_models(self) -> List[str]:
         """Get list of locally installed Ollama models."""
