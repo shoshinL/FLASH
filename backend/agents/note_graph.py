@@ -2,11 +2,10 @@ import math
 from typing import Annotated, Dict, TypedDict, List
 from langchain.schema.document import Document
 import operator
-from langchain_core.pydantic_v1 import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.vectorstores import VectorStoreRetriever
 from langgraph.constants import Send
 from langgraph.graph import END, StateGraph
-from pydantic import Field
 import logging
 
 from .process_pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks

@@ -1,9 +1,8 @@
 from typing import TypedDict, List
 from langchain.schema.document import Document
 from langchain_core.vectorstores import VectorStoreRetriever
-from langchain_core.pydantic_v1 import BaseModel
+from pydantic import BaseModel, Field
 from langgraph.graph import END, StateGraph
-from pydantic import Field
 import logging
 from .retrieval_agents import DocumentGrader, AnswerGenerator, HallucinationGrader, SingleExpertRouter
 
