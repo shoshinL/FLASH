@@ -36,7 +36,7 @@ TEST_EMBEDDING_MODELS = {
     "anthropic": "voyage-3",                      # Voyage AI (Anthropic partner)
     "google": "models/embedding-001",             # Google embedding
     "openrouter": "qwen/qwen3-embedding-0.6b",    # OpenRouter embedding
-    "ollama": "nomic-embed-text",                 # Local Ollama embedding
+    "ollama": "snowflake-arctic-embed2:latest",   # Local Ollama embedding
 }
 
 # Test settings
