@@ -87,7 +87,7 @@ def check_settings(window):
 
     if embedding_provider and embedding_provider != 'ollama':
         # Check if embedding provider has API key (may share with LLM provider)
-        embedding_api_key = settings_manager.get_api_key(embedding_provider)
+        embedding_api_key = settings_manager.get_provider_api_key(embedding_provider)
         if not embedding_api_key:
             provider_name = embedding_provider.capitalize()
             alert_messages.append(f"Please set your {provider_name} API key in the Embedding Provider settings.")
