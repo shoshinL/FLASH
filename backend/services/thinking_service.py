@@ -4,7 +4,7 @@ Thinking service - handles extended thinking/reasoning configuration
 
 import logging
 from typing import Dict
-from settingUtils.settings_context import SettingsContext
+from settings.settings_context import SettingsContext
 
 logger = logging.getLogger(__name__)
 

@@ -27,7 +27,7 @@ except ImportError:
     print("📝 Please copy test_config_template.py to test_config_local.py and add your API keys.")
     sys.exit(1)
 
-from settingUtils.llm_provider import ProviderFactory
+from settings.llm_provider import ProviderFactory
 from agents.parser_utils import preprocess_llm_output, strip_thinking_traces, strip_thinking_from_json, create_thinking_aware_parser
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field

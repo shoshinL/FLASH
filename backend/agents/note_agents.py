@@ -11,7 +11,7 @@ from .note_models import (
 )
 from .parser_utils import create_thinking_aware_parser
 
-from settingUtils.api_key_utils import require_llm
+from settings.api_key_utils import require_llm
 
 logger = logging.getLogger(__name__)
 

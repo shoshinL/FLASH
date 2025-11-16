@@ -6,8 +6,8 @@ import json
 from typing import Dict, List, Any, Optional
 from cryptography.fernet import Fernet
 
-from ankiUtils.collection_manager import AnkiCollectionManager
-from ankiUtils.db_access import get_profiles, get_sync_auth
+from anki.collection_manager import AnkiCollectionManager
+from anki.db_access import get_profiles, get_sync_auth
 from anki.errors import DBError
 import logging
 
@@ -572,7 +572,7 @@ class SettingsManager:
                          model: Optional[str] = None) -> bool:
         """Validate a provider configuration by making a test call."""
         try:
-            from settingUtils.llm_provider import ProviderFactory
+            from settings.llm_provider import ProviderFactory
 
             if provider == 'ollama':
                 # Ollama doesn't need API key
@@ -639,7 +639,7 @@ class SettingsManager:
 
     def get_embedding_provider_with_config(self):
         """Get a fully configured embedding provider instance."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
 
         config = self.get_embedding_config()
         provider_name = config['provider']

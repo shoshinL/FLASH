@@ -7,8 +7,8 @@ import logging
 import sys
 from anki.errors import DBError
 
-from settingUtils.settings_manager import SettingsManager
-from settingUtils.settings_context import SettingsContext
+from settings.settings_manager import SettingsManager
+from settings.settings_context import SettingsContext
 from agents.note_graph import graph
 
 # Configure logging to show only our app's debug messages, not external libraries
@@ -17,9 +17,9 @@ logging.basicConfig(level=logging.INFO,  # Set root logger to INFO
                     handlers=[logging.StreamHandler(sys.stdout)])
 
 # Set our application modules to DEBUG level
-logging.getLogger('settingUtils').setLevel(logging.DEBUG)
+logging.getLogger('settings').setLevel(logging.DEBUG)
 logging.getLogger('agents').setLevel(logging.DEBUG)
-logging.getLogger('ankiUtils').setLevel(logging.DEBUG)
+logging.getLogger('anki').setLevel(logging.DEBUG)
 logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 # Silence noisy external libraries
@@ -252,7 +252,7 @@ class Api:
 
     def get_available_providers(self):
         """Get list of all available LLM providers."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
         providers = ProviderFactory.get_all_providers()
         return {"providers": providers}
 
@@ -268,7 +268,7 @@ class Api:
 
     def get_available_models(self, provider):
         """Get available models for a specific provider."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
         try:
             settings_manager = SettingsContext.get_settings_manager()
             api_key = settings_manager.get_provider_api_key(provider)
@@ -337,7 +337,7 @@ class Api:
 
     def get_embedding_providers(self):
         """Get list of providers that support embeddings."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
         try:
             providers = ProviderFactory.get_embedding_providers()
             return {"providers": providers, "success": True}
@@ -363,7 +363,7 @@ class Api:
 
     def get_available_embedding_models(self, provider):
         """Get available embedding models for a specific provider."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
         try:
             settings_manager = SettingsContext.get_settings_manager()
             api_key = settings_manager.get_provider_api_key(provider)
@@ -390,7 +390,7 @@ class Api:
     def set_embedding_config(self, provider, model=None):
         """Set the embedding provider and model."""
         try:
-            from settingUtils.llm_provider import ProviderFactory
+            from settings.llm_provider import ProviderFactory
 
             # Validate that provider supports embeddings
             settings_manager = SettingsContext.get_settings_manager()
@@ -444,7 +444,7 @@ class Api:
 
     def check_thinking_support(self, provider, model):
         """Check if a provider/model supports thinking/reasoning."""
-        from settingUtils.llm_provider import ProviderFactory
+        from settings.llm_provider import ProviderFactory
         try:
             settings_manager = SettingsContext.get_settings_manager()
             api_key = settings_manager.get_provider_api_key(provider)

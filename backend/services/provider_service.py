@@ -4,8 +4,8 @@ Provider service - handles provider and model operations
 
 import logging
 from typing import Dict, List, Optional
-from settingUtils.settings_context import SettingsContext
-from settingUtils.llm_provider import LLMProviderFactory
+from settings.settings_context import SettingsContext
+from settings.llm_provider import ProviderFactory
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class ProviderService:
     def get_available_providers() -> Dict:
         """Get list of available LLM providers"""
         try:
-            providers = LLMProviderFactory.get_available_providers()
+            providers = ProviderFactory.get_all_providers()
             return {"providers": providers, "success": True}
         except Exception as e:
             logger.error(f"Error getting available providers: {e}")
@@ -30,10 +30,10 @@ class ProviderService:
             settings_manager = SettingsContext.get_settings_manager()
             api_key = settings_manager.get_provider_api_key(provider)
 
-            llm_provider = LLMProviderFactory.create_provider(
+            llm_provider = ProviderFactory.get_provider(
                 provider_name=provider,
-                model_name=None,
-                api_key=api_key
+                api_key=api_key,
+                model=None
             )
 
             models = llm_provider.get_available_models()
@@ -73,7 +73,7 @@ class ProviderService:
     def get_embedding_providers() -> Dict:
         """Get list of available embedding providers"""
         try:
-            providers = LLMProviderFactory.get_available_providers()
+            providers = ProviderFactory.get_all_providers()
             return {"providers": providers, "success": True}
         except Exception as e:
             logger.error(f"Error getting embedding providers: {e}")
@@ -86,11 +86,10 @@ class ProviderService:
             settings_manager = SettingsContext.get_settings_manager()
             api_key = settings_manager.get_provider_api_key(provider)
 
-            llm_provider = LLMProviderFactory.create_provider(
+            llm_provider = ProviderFactory.get_provider(
                 provider_name=provider,
-                model_name=None,
                 api_key=api_key,
-                is_embedding=True
+                model=None
             )
 
             models = llm_provider.get_available_embedding_models()

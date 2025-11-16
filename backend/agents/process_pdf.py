@@ -8,7 +8,7 @@ from langchain_community.vectorstores import Chroma
 import platform
 import tiktoken
 
-from settingUtils.settings_context import SettingsContext
+from settings.settings_context import SettingsContext
 
 logger = logging.getLogger(__name__)
 

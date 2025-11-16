@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from .note_models import BasicNote, BasicAndReversedNote, BasicTypeInAnswerNote, ClozeNote, ListNote
 from .parser_utils import create_thinking_aware_parser
 
-from settingUtils.api_key_utils import require_llm
+from settings.api_key_utils import require_llm
 
 class Score(BaseModel):
     score: str = Field(description="either 'yes' or 'no'")
