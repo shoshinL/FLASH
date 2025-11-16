@@ -412,10 +412,46 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     }
   };
 
-  const handleApiKeyInputChange = (key: string) => {
+  const handleApiKeyInputChange = (provider: string, key: string) => {
     setApiKeyInput(key);
-    const validation = validateApiKey(currentProvider, key);
+    const validation = validateApiKey(provider, key);
     setApiKeyValidation(validation);
+  };
+
+  const handleDeleteApiKey = async (provider: string) => {
+    try {
+      const response: unknown = await window.pywebview.api.delete_provider_api_key(provider);
+
+      if (
+        typeof response === "object" &&
+        response !== null &&
+        "success" in response &&
+        response.success
+      ) {
+        // Refresh API keys status
+        const keysResp: unknown = await window.pywebview.api.get_provider_api_keys_status();
+        if (isApiKeysStatusResponse(keysResp)) {
+          setApiKeys(keysResp.api_keys);
+        }
+
+        setSuccessMessage(`${PROVIDER_DISPLAY_NAMES[provider]} API key deleted successfully!`);
+        setTimeout(() => setSuccessMessage(null), 3000);
+        setError(null);
+
+        // Refresh models for the current provider if it matches
+        if (currentProvider === provider) {
+          await fetchAvailableModels(provider);
+        }
+        if (currentEmbeddingProvider === provider) {
+          await fetchAvailableEmbeddingModels(provider);
+        }
+      } else {
+        setError("Failed to delete API key");
+      }
+    } catch (err) {
+      console.error("Error deleting API key:", err);
+      setError("Failed to delete API key");
+    }
   };
 
   const estimateThinkingCost = (tokens: number): string => {
@@ -571,47 +607,6 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         </select>
       </div>
 
-      {/* API Key Input (only for providers that need it) */}
-      {requiresApiKey(currentProvider) && (
-        <div className="settings-item api-key-section">
-          <label>
-            API Key
-            <span className="info-icon" data-tooltip={`Your ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key - stored securely`}>ℹ</span>
-          </label>
-          <div className="api-key-input-group">
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => handleApiKeyInputChange(e.target.value)}
-              placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key`}
-              className="api-key-input"
-            />
-            <button
-              onClick={handleSetApiKey}
-              className={`api-key-button ${hasApiKey(currentProvider) ? 'has-key' : ''}`}
-            >
-              {hasApiKey(currentProvider) ? '✓ Update Key' : 'Set API Key'}
-            </button>
-          </div>
-          {apiKeyValidation && (
-            <div
-              className="api-key-validation"
-              style={{
-                marginTop: '8px',
-                fontSize: '13px',
-                color: apiKeyValidation.startsWith('✓') ? '#2e7d32' : '#e65100'
-              }}
-            >
-              {apiKeyValidation} • {apiKeyInput.length} characters
-            </div>
-          )}
-          {hasApiKey(currentProvider) && (
-            <div className="api-key-status">
-              Current key: {apiKeys[currentProvider]}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Model Selection */}
       <div className="settings-item">
@@ -779,7 +774,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                       value={currentProvider === provider ? apiKeyInput : ''}
                       onChange={(e) => {
                         setCurrentProvider(provider);
-                        handleApiKeyInputChange(e.target.value);
+                        handleApiKeyInputChange(provider, e.target.value);
                       }}
                       placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[provider]} API key`}
                       className="api-key-input"
@@ -794,6 +789,15 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                     >
                       {keySet ? '✓ Update Key' : 'Set API Key'}
                     </button>
+                    {keySet && (
+                      <button
+                        onClick={() => handleDeleteApiKey(provider)}
+                        className="api-key-delete-button"
+                        title="Delete API key"
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                   {currentProvider === provider && apiKeyValidation && (
                     <div

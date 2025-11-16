@@ -464,6 +464,19 @@ class SettingsManager:
         """Get API key for a specific provider."""
         return self._provider_api_keys.get(provider)
 
+    def delete_provider_api_key(self, provider: str) -> None:
+        """Delete API key for a specific provider."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM provider_api_keys WHERE provider = ?', (provider,))
+        conn.commit()
+        conn.close()
+
+        # Update cache
+        if provider in self._provider_api_keys:
+            del self._provider_api_keys[provider]
+        logging.debug(f"API key deleted for provider: {provider}")
+
     def get_all_provider_api_keys(self) -> Dict[str, str]:
         """Get all provider API keys (for UI display - masked)."""
         return {provider: "***" + key[-4:] if len(key) > 4 else "***"

@@ -294,6 +294,16 @@ class Api:
             logger.error(f"Error setting API key for {provider}: {e}")
             return {"success": False, "error": str(e)}
 
+    def delete_provider_api_key(self, provider):
+        """Delete API key for a specific provider."""
+        try:
+            settings_manager = SettingsContext.get_settings_manager()
+            settings_manager.delete_provider_api_key(provider)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error deleting API key for {provider}: {e}")
+            return {"success": False, "error": str(e)}
+
     def get_provider_api_keys_status(self):
         """Get status of which providers have API keys set."""
         settings_manager = SettingsContext.get_settings_manager()

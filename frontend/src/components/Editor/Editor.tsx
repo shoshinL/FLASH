@@ -81,9 +81,14 @@ export function Editor({
     if (files && files.length > 0) {
       const droppedFile = files[0] as FileWithPath;
       if (droppedFile.type === "application/pdf") {
-        setFile(droppedFile.name);
+        // On Linux/Ubuntu, drag-dropped files don't have a path property
+        // Fall back to file picker if path is not available
         if (droppedFile.path) {
+          setFile(droppedFile.name);
           setFilePath(droppedFile.path);
+        } else {
+          // Path not available (Linux/Ubuntu) - open file picker instead
+          handleFileUpload();
         }
       }
     }
