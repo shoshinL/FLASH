@@ -9,6 +9,7 @@ langchain_openai
 langchain_anthropic
 langchain_google_genai
 langchain_voyageai
+langchain-ollama
 langgraph
 pydantic
 langchain-chroma
