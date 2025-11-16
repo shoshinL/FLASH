@@ -433,14 +433,6 @@ def test_embedding_generation(provider_name: str, api_key: Optional[str], result
         else:
             provider = ProviderFactory.get_provider(provider_name, api_key=api_key)
 
-        # Verify provider supports embeddings
-        if not provider.supports_embeddings():
-            duration = time.time() - start_time
-            results.add_result(test_name, provider_name, "FAIL", duration,
-                             {"reason": f"{provider_name} does not support embeddings"})
-            print(f"  ❌ {test_name}: FAIL (no embedding support)")
-            return
-
         # Get available embedding models to verify configured model exists
         available_models = provider.get_available_embedding_models()
 

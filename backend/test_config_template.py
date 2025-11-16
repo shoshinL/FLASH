@@ -44,7 +44,7 @@ TEST_SETTINGS = {
     "timeout": 30,  # Timeout for API calls in seconds
     "max_retries": 3,  # Max retries for failed tests
     "skip_expensive": True,  # Skip expensive model tests
-    "test_thinking_models": False,  # Set to True if you want to test thinking models
+    "test_thinking_models": True,  # Set to False to skip thinking model tests
 }
 
 # Sample test data
