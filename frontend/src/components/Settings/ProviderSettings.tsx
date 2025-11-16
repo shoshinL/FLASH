@@ -18,6 +18,7 @@ import { requiresApiKey, hasApiKey, isProvidersResponse, isEmbeddingConfig } fro
 
 // Constants
 import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { ERRORS, SUCCESS, INFO, BUTTONS, TOOLTIPS } from "../../config";
 
 // Types
 import type { ProviderMode } from "../../types/provider";
@@ -89,7 +90,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       setEmbeddingError(null);
     } catch (err) {
       console.error("Error fetching provider data:", err);
-      llmConfig.setError("Failed to load provider settings");
+      llmConfig.setError(ERRORS.PROVIDER_SETTINGS_LOAD);
     }
   };
 
@@ -145,14 +146,14 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     try {
       const response: unknown = await window.pywebview.api.set_embedding_config(currentEmbeddingProvider, model);
       if (typeof response === "object" && response !== null && "success" in response && response.success) {
-        setEmbeddingSuccessMessage("Embedding model updated successfully!");
+        setEmbeddingSuccessMessage(SUCCESS.EMBEDDING_MODEL_UPDATED);
         setTimeout(() => setEmbeddingSuccessMessage(null), 3000);
       } else {
-        setEmbeddingError("Failed to set embedding model");
+        setEmbeddingError(ERRORS.EMBEDDING_MODEL_SET);
       }
     } catch (err) {
       console.error("Error setting embedding model:", err);
-      setEmbeddingError("Failed to set embedding model");
+      setEmbeddingError(ERRORS.EMBEDDING_MODEL_SET);
     }
   };
 
@@ -160,18 +161,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     try {
       const response: unknown = await window.pywebview.api.set_embedding_config(currentEmbeddingProvider, currentEmbeddingModel);
       if (typeof response === "object" && response !== null && "success" in response && response.success) {
-        setEmbeddingSuccessMessage("Embedding configuration saved successfully!");
+        setEmbeddingSuccessMessage(SUCCESS.EMBEDDING_CONFIG_SAVED);
         setTimeout(() => setEmbeddingSuccessMessage(null), 3000);
         setEmbeddingError(null);
       } else {
         const errorMsg = (typeof response === "object" && response !== null && "error" in response)
           ? String(response.error)
-          : "Failed to save embedding configuration";
+          : ERRORS.EMBEDDING_CONFIG_SAVE;
         setEmbeddingError(errorMsg);
       }
     } catch (err) {
       console.error("Error applying embedding config:", err);
-      setEmbeddingError("Failed to save embedding configuration");
+      setEmbeddingError(ERRORS.EMBEDDING_CONFIG_SAVE);
     }
   };
 
@@ -195,7 +196,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           providers={availableProviders}
           apiKeys={apiKeysManager.apiKeys}
           onChange={handleProviderChange}
-          tooltip="Select your LLM provider (OpenAI, Anthropic, Google, etc.)"
+          tooltip={TOOLTIPS.LLM_PROVIDER}
         />
 
         <ModelSelector
@@ -206,7 +207,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           loading={llmModels.loading}
           apiKeys={apiKeysManager.apiKeys}
           onChange={handleModelChange}
-          tooltip="Choose the specific model to use for generation"
+          tooltip={TOOLTIPS.MODEL_SELECT}
         />
 
         {thinkingConfig.supportsThinking && (
@@ -225,7 +226,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             className="apply-button"
             disabled={!llmConfig.currentModel}
           >
-            Save Configuration
+            {BUTTONS.SAVE_CONFIGURATION}
           </button>
         </div>
       </div>
@@ -295,13 +296,12 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           providers={embeddingProviders}
           apiKeys={apiKeysManager.apiKeys}
           onChange={handleEmbeddingProviderChange}
-          tooltip="Embeddings convert text to vectors for similarity search and document retrieval"
+          tooltip={TOOLTIPS.EMBEDDING_PROVIDER}
         />
 
         {requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider, apiKeysManager.apiKeys) && (
           <div className="warning-message">
-            ⚠️ {PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider]} requires an API key.
-            Please set it in the API Keys tab.
+            {INFO.API_KEY_REQUIRED_TAB(PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider])}
           </div>
         )}
 
@@ -314,7 +314,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           isEmbedding={true}
           apiKeys={apiKeysManager.apiKeys}
           onChange={handleEmbeddingModelChange}
-          tooltip="Choose the specific embedding model to use"
+          tooltip={TOOLTIPS.EMBEDDING_MODEL_SELECT}
         />
 
         <div className="settings-item apply-button-container">
@@ -323,7 +323,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             className="apply-button"
             disabled={!currentEmbeddingModel}
           >
-            Save Configuration
+            {BUTTONS.SAVE_CONFIGURATION}
           </button>
         </div>
       </div>

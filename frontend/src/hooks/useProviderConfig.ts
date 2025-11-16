@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { isProviderConfig } from '../utils/typeGuards';
+import { TIMEOUTS, ERRORS, SUCCESS } from '../config';
 
 export function useProviderConfig() {
   const [currentProvider, setCurrentProvider] = useState<string>("openai");
@@ -27,7 +28,7 @@ export function useProviderConfig() {
       setError(null);
     } catch (err) {
       console.error("Error fetching provider config:", err);
-      setError("Failed to load provider configuration");
+      setError(ERRORS.PROVIDER_CONFIG_LOAD);
     } finally {
       setLoading(false);
     }
@@ -38,12 +39,12 @@ export function useProviderConfig() {
       await window.pywebview.api.set_provider_config(provider, model);
       setCurrentProvider(provider);
       setCurrentModel(model);
-      setSuccessMessage("Configuration saved successfully!");
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setSuccessMessage(SUCCESS.PROVIDER_CONFIG_SAVED);
+      setTimeout(() => setSuccessMessage(null), TIMEOUTS.SUCCESS_MESSAGE);
       setError(null);
     } catch (err) {
       console.error("Error saving provider config:", err);
-      setError("Failed to save configuration");
+      setError(ERRORS.PROVIDER_CONFIG_SAVE);
     }
   };
 

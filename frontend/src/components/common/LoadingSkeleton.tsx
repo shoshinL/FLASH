@@ -2,6 +2,8 @@
  * Reusable Loading Skeleton Component
  */
 
+import { SKELETON } from "../../config";
+
 interface LoadingSkeletonProps {
   type?: 'title' | 'text' | 'select' | 'input' | 'button' | 'section';
   width?: string;
@@ -49,11 +51,11 @@ export function SettingsLoadingSkeleton() {
     <div className="provider-settings-container">
       <LoadingSkeleton type="title" />
       <div className="skeleton-section">
-        <LoadingSkeleton type="text" width="20%" style={{ marginBottom: '10px' }} />
+        <LoadingSkeleton type="text" width={SKELETON.TEXT_WIDTH_PRIMARY} style={{ marginBottom: '10px' }} />
         <LoadingSkeleton type="select" />
       </div>
       <div className="skeleton-section">
-        <LoadingSkeleton type="text" width="15%" style={{ marginBottom: '10px' }} />
+        <LoadingSkeleton type="text" width={SKELETON.TEXT_WIDTH_SECONDARY} style={{ marginBottom: '10px' }} />
         <LoadingSkeleton type="select" />
       </div>
       <div className="skeleton-section">

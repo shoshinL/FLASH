@@ -5,12 +5,13 @@
 import { useState, useEffect } from 'react';
 import type { ThinkingConfig } from '../types/provider';
 import { isThinkingConfig } from '../utils/typeGuards';
+import { THINKING, ERRORS } from '../config';
 
 export function useThinkingConfig() {
   const [enabled, setEnabled] = useState<boolean>(false);
-  const [budgetTokens, setBudgetTokens] = useState<number>(2000);
-  const [effort, setEffort] = useState<string>("medium");
-  const [summary, setSummary] = useState<string>("auto");
+  const [budgetTokens, setBudgetTokens] = useState<number>(THINKING.DEFAULT_BUDGET_TOKENS);
+  const [effort, setEffort] = useState<string>(THINKING.DEFAULT_EFFORT);
+  const [summary, setSummary] = useState<string>(THINKING.DEFAULT_SUMMARY);
   const [supportsThinking, setSupportsThinking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +66,7 @@ export function useThinkingConfig() {
       // Silently save without showing success message
     } catch (err) {
       console.error("Error saving thinking config:", err);
-      setError("Failed to save thinking configuration");
+      setError(ERRORS.THINKING_CONFIG_SAVE);
     }
   };
 

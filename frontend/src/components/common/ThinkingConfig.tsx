@@ -4,6 +4,7 @@
 
 import { estimateThinkingCost } from "../../utils/costEstimation";
 import type { ThinkingConfig as ThinkingConfigType } from "../../types/provider";
+import { THINKING, LABELS, TOOLTIPS } from "../../config";
 
 interface ThinkingConfigProps {
   provider: string;
@@ -31,7 +32,7 @@ export function ThinkingConfig({
             onChange={(e) => onUpdate({ enabled: e.target.checked })}
           />
           <span>Enable extended thinking/reasoning</span>
-          <span className="info-icon" data-tooltip="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
+          <span className="info-icon" data-tooltip={TOOLTIPS.THINKING_ENABLED}>ℹ</span>
         </label>
       </div>
 
@@ -41,16 +42,16 @@ export function ThinkingConfig({
           {provider === 'anthropic' && (
             <div className="settings-item">
               <label>
-                Thinking Budget
-                <span className="info-icon" data-tooltip="Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more">ℹ</span>
+                {LABELS.THINKING_BUDGET}
+                <span className="info-icon" data-tooltip={TOOLTIPS.THINKING_BUDGET}>ℹ</span>
               </label>
               <input
                 type="number"
                 value={budgetTokens}
                 onChange={(e) => onUpdate({ budget_tokens: Number(e.target.value) })}
-                min={500}
-                max={10000}
-                step={500}
+                min={THINKING.MIN_BUDGET_TOKENS}
+                max={THINKING.MAX_BUDGET_TOKENS}
+                step={THINKING.BUDGET_STEP}
                 className="thinking-input"
               />
               <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
@@ -66,8 +67,8 @@ export function ThinkingConfig({
           {provider === 'openai' && (
             <div className="settings-item">
               <label>
-                Reasoning Effort
-                <span className="info-icon" data-tooltip="Controls how much computational effort the model uses for reasoning">ℹ</span>
+                {LABELS.REASONING_EFFORT}
+                <span className="info-icon" data-tooltip={TOOLTIPS.REASONING_EFFORT}>ℹ</span>
               </label>
               <select
                 value={effort}

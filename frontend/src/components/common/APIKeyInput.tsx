@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { validateApiKey } from "../../utils/validation";
 import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { BUTTONS } from "../../config";
 
 interface APIKeyInputProps {
   provider: string;
@@ -65,13 +66,13 @@ export function APIKeyInput({
           className={`api-key-button ${hasKey ? 'has-key' : ''}`}
           disabled={!keyInput.trim()}
         >
-          {hasKey ? '✓ Update Key' : 'Set API Key'}
+          {hasKey ? BUTTONS.UPDATE_API_KEY : BUTTONS.SET_API_KEY}
         </button>
         {hasKey && onDelete && (
           <button
             onClick={handleDeleteKey}
             className="api-key-delete-button"
-            title="Delete API key"
+            title={BUTTONS.DELETE_API_KEY_TITLE}
           >
             🗑️
           </button>

@@ -5,6 +5,7 @@
 import { groupModels } from "../../utils/modelGrouping";
 import { requiresApiKey, hasApiKey } from "../../utils/validation";
 import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { INFO, OLLAMA_EXAMPLES } from "../../config";
 
 interface ModelSelectorProps {
   label: string;
@@ -27,7 +28,7 @@ export function ModelSelector({
   isEmbedding = false,
   apiKeys,
   onChange,
-  tooltip = "Choose the specific model to use"
+  tooltip
 }: ModelSelectorProps) {
   const needsKey = requiresApiKey(provider);
   const hasKey = hasApiKey(provider, apiKeys);
@@ -57,30 +58,23 @@ export function ModelSelector({
         <div className="no-models">
           {provider === 'ollama' ? (
             <div>
-              <strong>No Ollama {modelType} found.</strong>
+              <strong>{INFO.OLLAMA_NO_MODELS_TITLE(isEmbedding)}</strong>
               <br />
-              Install {modelType} using these commands:
+              {INFO.OLLAMA_INSTALL_PROMPT(isEmbedding)}
               <br />
               <code style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>
-                {isEmbedding ? (
-                  <>
-                    ollama pull snowflake-arctic-embed2:latest<br />
-                    ollama pull nomic-embed-text<br />
-                    ollama pull mxbai-embed-large
-                  </>
-                ) : (
-                  <>
-                    ollama pull llama3.2<br />
-                    ollama pull deepseek-r1:1.5b<br />
-                    ollama pull qwen2.5:7b
-                  </>
-                )}
+                {(isEmbedding ? OLLAMA_EXAMPLES.EMBEDDING_MODELS : OLLAMA_EXAMPLES.LLM_MODELS).map((model, idx) => (
+                  <span key={model}>
+                    {OLLAMA_EXAMPLES.INSTALL_COMMAND} {model}
+                    {idx < (isEmbedding ? OLLAMA_EXAMPLES.EMBEDDING_MODELS : OLLAMA_EXAMPLES.LLM_MODELS).length - 1 && <br />}
+                  </span>
+                ))}
               </code>
             </div>
           ) : needsKey && !hasKey ? (
-            `Please set an API key for ${providerName} first`
+            INFO.API_KEY_REQUIRED(providerName)
           ) : (
-            `No ${modelType} available`
+            INFO.NO_MODELS_AVAILABLE(modelType)
           )}
         </div>
       </div>
@@ -101,7 +95,7 @@ export function ModelSelector({
         className="model-select"
       >
         <option value="" disabled>
-          Select a model
+          {INFO.SELECT_MODEL}
         </option>
         {Object.entries(groupedModels).map(([groupName, groupModels]) => (
           <optgroup key={groupName} label={groupName}>

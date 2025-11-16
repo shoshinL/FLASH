@@ -11,8 +11,51 @@ from ankiUtils.db_access import get_profiles, get_sync_auth
 from anki.errors import DBError
 import logging
 
-ENCRYPTION_KEY = b'FOFbM9Z0p86bFW1KiDwLdvZS7iBr6_1BG5GLkhKlMcc='
-fernet = Fernet(ENCRYPTION_KEY)
+
+def _get_or_create_encryption_key() -> bytes:
+    """
+    Get or create encryption key for secure storage of API keys.
+
+    The key is generated once and stored in the user's data directory.
+    This is more secure than hardcoding a key in the source code.
+
+    Returns:
+        bytes: The Fernet encryption key
+    """
+    # Determine the key file location (same directory as database)
+    if sys.platform == "win32":
+        data_dir = os.path.join(os.getenv('APPDATA'), 'Flash-for-Anki')
+    elif sys.platform == "darwin":
+        data_dir = os.path.join(os.path.expanduser('~/Library/Application Support/Flash-for-Anki'))
+    else:  # Linux and other Unix-like systems
+        data_dir = os.path.join(os.path.expanduser('~/.local/share/Flash-for-Anki'))
+
+    # Ensure directory exists
+    os.makedirs(data_dir, exist_ok=True)
+
+    key_file = os.path.join(data_dir, '.encryption_key')
+
+    # Load existing key or generate new one
+    if os.path.exists(key_file):
+        with open(key_file, 'rb') as f:
+            key = f.read()
+        logging.debug("Loaded existing encryption key")
+    else:
+        # Generate new key
+        key = Fernet.generate_key()
+        # Save key to file with restricted permissions
+        with open(key_file, 'wb') as f:
+            f.write(key)
+        # Set file permissions to be readable only by owner (Unix-like systems)
+        if sys.platform != "win32":
+            os.chmod(key_file, 0o600)
+        logging.info("Generated new encryption key")
+
+    return key
+
+
+# Initialize Fernet with the encryption key
+fernet = Fernet(_get_or_create_encryption_key())
 
 class SettingsManager:
     def __init__(self):

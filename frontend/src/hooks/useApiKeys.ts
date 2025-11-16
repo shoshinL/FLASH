@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { isApiKeysStatusResponse } from '../utils/typeGuards';
 import { PROVIDER_DISPLAY_NAMES } from '../constants/providers';
+import { TIMEOUTS, ERRORS, SUCCESS } from '../config';
 
 export function useApiKeys() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
@@ -26,7 +27,7 @@ export function useApiKeys() {
       setError(null);
     } catch (err) {
       console.error("Error fetching API keys:", err);
-      setError("Failed to load API keys");
+      setError(ERRORS.API_KEY_LOAD);
     } finally {
       setLoading(false);
     }
@@ -43,17 +44,17 @@ export function useApiKeys() {
         response.success
       ) {
         await fetchApiKeys();
-        setSuccessMessage(`${PROVIDER_DISPLAY_NAMES[provider]} API key set successfully!`);
-        setTimeout(() => setSuccessMessage(null), 3000);
+        setSuccessMessage(SUCCESS.API_KEY_SET(PROVIDER_DISPLAY_NAMES[provider]));
+        setTimeout(() => setSuccessMessage(null), TIMEOUTS.SUCCESS_MESSAGE);
         setError(null);
         return true;
       } else {
-        setError("Failed to set API key");
+        setError(ERRORS.API_KEY_SET);
         return false;
       }
     } catch (err) {
       console.error("Error setting API key:", err);
-      setError("Failed to set API key");
+      setError(ERRORS.API_KEY_SET);
       return false;
     }
   };
@@ -69,17 +70,17 @@ export function useApiKeys() {
         response.success
       ) {
         await fetchApiKeys();
-        setSuccessMessage(`${PROVIDER_DISPLAY_NAMES[provider]} API key deleted successfully!`);
-        setTimeout(() => setSuccessMessage(null), 3000);
+        setSuccessMessage(SUCCESS.API_KEY_DELETED(PROVIDER_DISPLAY_NAMES[provider]));
+        setTimeout(() => setSuccessMessage(null), TIMEOUTS.SUCCESS_MESSAGE);
         setError(null);
         return true;
       } else {
-        setError("Failed to delete API key");
+        setError(ERRORS.API_KEY_DELETE);
         return false;
       }
     } catch (err) {
       console.error("Error deleting API key:", err);
-      setError("Failed to delete API key");
+      setError(ERRORS.API_KEY_DELETE);
       return false;
     }
   };

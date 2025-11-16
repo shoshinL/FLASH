@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { isModelsResponse } from '../utils/typeGuards';
+import { ERRORS, INFO } from '../config';
 
 export function useModels() {
   const [models, setModels] = useState<string[]>([]);
@@ -27,16 +28,16 @@ export function useModels() {
           setModels([]);
           if (provider === 'ollama') {
             const modelType = isEmbedding ? 'embedding models' : 'models';
-            setError(`⚠️ Ollama is not running or no ${modelType} are installed. Start Ollama with 'ollama serve' and install ${modelType}.`);
+            setError(INFO.OLLAMA_NOT_RUNNING(modelType));
           } else {
-            setError(response.error || "Failed to fetch models");
+            setError(response.error || ERRORS.MODELS_FETCH);
           }
         }
       }
     } catch (err) {
       console.error("Error fetching models:", err);
       setModels([]);
-      setError("Failed to fetch available models");
+      setError(ERRORS.MODELS_FETCH);
     } finally {
       setLoading(false);
     }
