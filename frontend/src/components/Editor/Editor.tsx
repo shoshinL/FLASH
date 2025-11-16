@@ -34,6 +34,7 @@ export function Editor({
 }: EditorProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileUploadRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = () => {
     // @ts-ignore
@@ -60,7 +61,8 @@ export function Editor({
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!fileUploadRef.current?.contains(e.relatedTarget as Node)) {
+    // Only set isDragging to false if leaving the editor container entirely
+    if (!editorContainerRef.current?.contains(e.relatedTarget as Node)) {
       setIsDragging(false);
     }
   };
@@ -107,7 +109,14 @@ export function Editor({
   }
 
   return (
-    <div className="editor-container">
+    <div
+      ref={editorContainerRef}
+      className="editor-container"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <textarea
         className="textarea"
         placeholder="Enter what the flashcards should focus on in the document below..."
@@ -118,10 +127,6 @@ export function Editor({
         ref={fileUploadRef}
         className={`file-upload ${file ? "file-selected" : ""} ${isDragging ? "dragging" : ""}`}
         onClick={handleFileUpload}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
       >
         <div className="file-icon">
           <img src={file ? pdfFileIcon : fileIcon} alt="File Icon" />

@@ -45,6 +45,43 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   ollama: "Ollama (Local)"
 };
 
+// Model grouping configuration
+const MODEL_GROUPS: Record<string, Record<string, string[]>> = {
+  openai: {
+    "GPT-4 Models (Latest)": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+    "GPT-4 Models (Legacy)": ["gpt-4", "gpt-4-32k"],
+    "GPT-3.5 Models": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
+    "Reasoning Models": ["o1", "o1-mini", "o1-preview", "o3-mini"]
+  },
+  anthropic: {
+    "Claude 3.5 Models": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-5-haiku-20241022"],
+    "Claude 3 Models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+  },
+  google: {
+    "Gemini 2.0 Models": ["gemini-2.0-flash-exp", "gemini-2.0-flash-thinking-exp"],
+    "Gemini 1.5 Models": ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"],
+    "Gemini 1.0 Models": ["gemini-1.0-pro"]
+  },
+  ollama: {
+    "Reasoning Models": ["deepseek-r1", "cogito", "qwq"],
+    "Large Models (>7B)": ["llama3.2:70b", "llama3.1:70b", "qwen2.5:14b", "mixtral"],
+    "Medium Models (7B)": ["llama3.2:7b", "llama3.1:7b", "mistral", "qwen2.5:7b"],
+    "Small Models (<7B)": ["llama3.2:3b", "llama3.2:1b", "deepseek-r1:1.5b", "phi3", "gemma2:2b"]
+  }
+};
+
+const EMBEDDING_MODEL_GROUPS: Record<string, Record<string, string[]>> = {
+  openai: {
+    "OpenAI Embeddings": ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"]
+  },
+  google: {
+    "Gecko Embeddings": ["text-embedding-004", "text-embedding-005"]
+  },
+  ollama: {
+    "Embedding Models": ["snowflake-arctic-embed2", "nomic-embed-text", "mxbai-embed-large", "all-minilm"]
+  }
+};
+
 interface ProviderSettingsProps {
   mode: "llm" | "embedding" | "api_keys";
 }
@@ -77,6 +114,9 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   const [reasoningEffort, setReasoningEffort] = useState<string>("medium");
   const [reasoningSummary, setReasoningSummary] = useState<string>("auto");
   const [providerSupportsThinking, setProviderSupportsThinking] = useState<boolean>(false);
+
+  // Validation state
+  const [apiKeyValidation, setApiKeyValidation] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProviderData();
@@ -162,7 +202,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         } else {
           setAvailableModels([]);
           if (provider === 'ollama') {
-            setError("Ollama is not running or no models are installed. Please start Ollama and pull models.");
+            setError("⚠️ Ollama is not running or no models are installed. Start Ollama with 'ollama serve' and install models.");
           } else {
             setError(response.error || "Failed to fetch models");
           }
@@ -188,7 +228,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         } else {
           setAvailableEmbeddingModels([]);
           if (provider === 'ollama') {
-            setEmbeddingError("Ollama is not running or no embedding models are installed. Please start Ollama and pull embedding models (e.g., 'ollama pull snowflake-arctic-embed2:latest').");
+            setEmbeddingError("⚠️ Ollama is not running or no embedding models are installed. Start Ollama with 'ollama serve' and install embedding models.");
           } else {
             setEmbeddingError(response.error || "Failed to fetch embedding models");
           }
@@ -325,6 +365,109 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     return !!apiKeys[provider];
   };
 
+  const validateApiKey = (provider: string, key: string): string | null => {
+    if (!key.trim()) {
+      return null;
+    }
+
+    const trimmedKey = key.trim();
+
+    // Basic validation patterns for different providers
+    switch (provider) {
+      case 'openai':
+        if (!trimmedKey.startsWith('sk-')) {
+          return '⚠️ OpenAI keys should start with "sk-"';
+        }
+        if (trimmedKey.length < 40) {
+          return '⚠️ OpenAI keys are typically longer';
+        }
+        return '✓ Valid format';
+
+      case 'anthropic':
+        if (!trimmedKey.startsWith('sk-ant-')) {
+          return '⚠️ Anthropic keys should start with "sk-ant-"';
+        }
+        if (trimmedKey.length < 40) {
+          return '⚠️ Anthropic keys are typically longer';
+        }
+        return '✓ Valid format';
+
+      case 'google':
+        if (trimmedKey.length < 30) {
+          return '⚠️ Google API keys are typically longer';
+        }
+        return '✓ Valid format';
+
+      case 'openrouter':
+        if (!trimmedKey.startsWith('sk-or-')) {
+          return '⚠️ OpenRouter keys should start with "sk-or-"';
+        }
+        if (trimmedKey.length < 40) {
+          return '⚠️ OpenRouter keys are typically longer';
+        }
+        return '✓ Valid format';
+
+      default:
+        return trimmedKey.length > 20 ? '✓ Valid length' : '⚠️ Key seems too short';
+    }
+  };
+
+  const handleApiKeyInputChange = (key: string) => {
+    setApiKeyInput(key);
+    const validation = validateApiKey(currentProvider, key);
+    setApiKeyValidation(validation);
+  };
+
+  const estimateThinkingCost = (tokens: number): string => {
+    // Rough cost estimates (these are approximate and may vary)
+    const costPerMillionTokens = 4.0; // Example: $4/million tokens for thinking
+    const cost = (tokens / 1000000) * costPerMillionTokens;
+    return cost < 0.01 ? '< $0.01' : `~$${cost.toFixed(2)}`;
+  };
+
+  const groupModels = (provider: string, models: string[], isEmbedding: boolean = false) => {
+    const groups = isEmbedding ? EMBEDDING_MODEL_GROUPS : MODEL_GROUPS;
+    const providerGroups = groups[provider];
+
+    if (!providerGroups) {
+      // No grouping config for this provider - return all as "Other Models"
+      return { "Other Models": models };
+    }
+
+    const grouped: Record<string, string[]> = {};
+    const ungrouped: string[] = [];
+
+    // First, categorize models into their groups
+    for (const model of models) {
+      let found = false;
+      for (const [groupName, groupModels] of Object.entries(providerGroups)) {
+        // Check if model matches any pattern in the group
+        if (groupModels.some(pattern =>
+          model === pattern ||
+          model.startsWith(pattern.replace(':latest', '')) ||
+          model.includes(pattern)
+        )) {
+          if (!grouped[groupName]) {
+            grouped[groupName] = [];
+          }
+          grouped[groupName].push(model);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        ungrouped.push(model);
+      }
+    }
+
+    // Add ungrouped models to "Other Models" if any exist
+    if (ungrouped.length > 0) {
+      grouped["Other Models"] = ungrouped;
+    }
+
+    return grouped;
+  };
+
   const fetchThinkingConfig = async () => {
     try {
       const response: unknown = await window.pywebview.api.get_thinking_config();
@@ -377,7 +520,22 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   };
 
   if (loading) {
-    return <div className="provider-settings-loading">Loading provider settings...</div>;
+    return (
+      <div className="provider-settings-container">
+        <div className="skeleton skeleton-title"></div>
+        <div className="skeleton-section">
+          <div className="skeleton skeleton-text" style={{ width: '20%', marginBottom: '10px' }}></div>
+          <div className="skeleton skeleton-select"></div>
+        </div>
+        <div className="skeleton-section">
+          <div className="skeleton skeleton-text" style={{ width: '15%', marginBottom: '10px' }}></div>
+          <div className="skeleton skeleton-select"></div>
+        </div>
+        <div className="skeleton-section">
+          <div className="skeleton skeleton-button"></div>
+        </div>
+      </div>
+    );
   }
 
   // Render LLM Model settings
@@ -424,7 +582,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             <input
               type="password"
               value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
+              onChange={(e) => handleApiKeyInputChange(e.target.value)}
               placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key`}
               className="api-key-input"
             />
@@ -435,6 +593,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
               {hasApiKey(currentProvider) ? '✓ Update Key' : 'Set API Key'}
             </button>
           </div>
+          {apiKeyValidation && (
+            <div
+              className="api-key-validation"
+              style={{
+                marginTop: '8px',
+                fontSize: '13px',
+                color: apiKeyValidation.startsWith('✓') ? '#2e7d32' : '#e65100'
+              }}
+            >
+              {apiKeyValidation} • {apiKeyInput.length} characters
+            </div>
+          )}
           {hasApiKey(currentProvider) && (
             <div className="api-key-status">
               Current key: {apiKeys[currentProvider]}
@@ -450,7 +620,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           <span className="info-icon" data-tooltip="Choose the specific model to use for generation">ℹ</span>
         </label>
         {modelLoading ? (
-          <div className="model-loading">Loading models...</div>
+          <div className="skeleton skeleton-select"></div>
         ) : availableModels.length > 0 ? (
           <select
             value={currentModel || ""}
@@ -460,19 +630,35 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             <option value="" disabled>
               Select a model
             </option>
-            {availableModels.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
+            {Object.entries(groupModels(currentProvider, availableModels, false)).map(([groupName, models]) => (
+              <optgroup key={groupName} label={groupName}>
+                {models.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         ) : (
           <div className="no-models">
-            {currentProvider === 'ollama'
-              ? 'No Ollama models found. Please install models using "ollama pull <model-name>"'
-              : requiresApiKey(currentProvider) && !hasApiKey(currentProvider)
-              ? 'Please set an API key first'
-              : 'No models available'}
+            {currentProvider === 'ollama' ? (
+              <div>
+                <strong>No Ollama models found.</strong>
+                <br />
+                Install models using these commands:
+                <br />
+                <code style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>
+                  ollama pull llama3.2<br />
+                  ollama pull deepseek-r1:1.5b<br />
+                  ollama pull qwen2.5:7b
+                </code>
+              </div>
+            ) : requiresApiKey(currentProvider) && !hasApiKey(currentProvider) ? (
+              'Please set an API key first'
+            ) : (
+              'No models available'
+            )}
           </div>
         )}
       </div>
@@ -511,7 +697,12 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                     step={500}
                     className="thinking-input"
                   />
-                  <span className="input-unit">tokens</span>
+                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
+                    <span className="input-unit">{thinkingBudget} tokens</span>
+                    <span style={{ marginLeft: '12px', color: '#888' }}>
+                      Est. cost per request: {estimateThinkingCost(thinkingBudget)}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -588,7 +779,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                       value={currentProvider === provider ? apiKeyInput : ''}
                       onChange={(e) => {
                         setCurrentProvider(provider);
-                        setApiKeyInput(e.target.value);
+                        handleApiKeyInputChange(e.target.value);
                       }}
                       placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[provider]} API key`}
                       className="api-key-input"
@@ -604,6 +795,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                       {keySet ? '✓ Update Key' : 'Set API Key'}
                     </button>
                   </div>
+                  {currentProvider === provider && apiKeyValidation && (
+                    <div
+                      className="api-key-validation"
+                      style={{
+                        marginTop: '8px',
+                        fontSize: '13px',
+                        color: apiKeyValidation.startsWith('✓') ? '#2e7d32' : '#e65100'
+                      }}
+                    >
+                      {apiKeyValidation} • {apiKeyInput.length} characters
+                    </div>
+                  )}
                   {keySet && (
                     <div className="api-key-status">
                       Current key: {apiKeys[provider]}
@@ -671,7 +874,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             <span className="info-icon" data-tooltip="Choose the specific embedding model to use">ℹ</span>
           </label>
           {embeddingModelLoading ? (
-            <div className="model-loading">Loading embedding models...</div>
+            <div className="skeleton skeleton-select"></div>
           ) : availableEmbeddingModels.length > 0 ? (
             <select
               value={currentEmbeddingModel || ""}
@@ -681,19 +884,35 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
               <option value="" disabled>
                 Select an embedding model
               </option>
-              {availableEmbeddingModels.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
+              {Object.entries(groupModels(currentEmbeddingProvider, availableEmbeddingModels, true)).map(([groupName, models]) => (
+                <optgroup key={groupName} label={groupName}>
+                  {models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           ) : (
             <div className="no-models">
-              {currentEmbeddingProvider === 'ollama'
-                ? 'No Ollama embedding models found. Please install models using "ollama pull snowflake-arctic-embed2:latest"'
-                : requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider)
-                ? 'Please set an API key first'
-                : 'No embedding models available'}
+              {currentEmbeddingProvider === 'ollama' ? (
+                <div>
+                  <strong>No Ollama embedding models found.</strong>
+                  <br />
+                  Install embedding models using these commands:
+                  <br />
+                  <code style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>
+                    ollama pull snowflake-arctic-embed2:latest<br />
+                    ollama pull nomic-embed-text<br />
+                    ollama pull mxbai-embed-large
+                  </code>
+                </div>
+              ) : requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider) ? (
+                'Please set an API key first'
+              ) : (
+                'No embedding models available'
+              )}
             </div>
           )}
         </div>

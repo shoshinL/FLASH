@@ -219,6 +219,59 @@
   background-color: #ffebee;
 }
 
+/* Skeleton Loaders */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-select {
+  height: 46px;
+  width: 100%;
+}
+
+.skeleton-input {
+  height: 46px;
+  width: 100%;
+}
+
+.skeleton-text {
+  height: 20px;
+  width: 60%;
+  margin-bottom: 10px;
+}
+
+.skeleton-title {
+  height: 36px;
+  width: 40%;
+  margin-bottom: 32px;
+}
+
+.skeleton-section {
+  margin-bottom: 24px;
+}
+
+.skeleton-button {
+  height: 50px;
+  width: 100%;
+}
+
 .apply-button-container {
   margin-top: 32px;
   padding-top: 24px;
@@ -391,6 +444,22 @@
 .model-select option:disabled {
   color: #999;
   font-style: italic;
+}
+
+/* Model grouping styles */
+.model-select optgroup {
+  font-weight: 700;
+  font-size: 13px;
+  color: #2c2c2c;
+  background-color: #f5f5f5;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.model-select optgroup option {
+  font-weight: 400;
+  padding-left: 12px;
+  background-color: white;
 }
 
 /* API Keys Management Page */
