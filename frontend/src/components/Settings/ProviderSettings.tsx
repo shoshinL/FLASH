@@ -46,7 +46,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 };
 
 interface ProviderSettingsProps {
-  mode: "llm" | "embedding";
+  mode: "llm" | "embedding" | "api_keys";
 }
 
 export function ProviderSettings({ mode }: ProviderSettingsProps) {
@@ -399,8 +399,13 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           className="provider-select"
         >
           {availableProviders.map((provider) => (
-            <option key={provider} value={provider}>
+            <option
+              key={provider}
+              value={provider}
+              disabled={requiresApiKey(provider) && !hasApiKey(provider)}
+            >
               {PROVIDER_DISPLAY_NAMES[provider] || provider}
+              {requiresApiKey(provider) && !hasApiKey(provider) ? ' (API key required)' : ''}
             </option>
           ))}
         </select>
@@ -479,7 +484,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                 checked={thinkingEnabled}
                 onChange={(e) => handleThinkingConfigChange({ enabled: e.target.checked })}
               />
-              Enable Extended Thinking/Reasoning
+              <span>Enable Extended Thinking/Reasoning</span>
             </label>
             <p className="hint">
               Extended thinking allows the model to spend more time reasoning before responding
@@ -552,6 +557,76 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     );
   }
 
+  // Render API Keys management
+  if (mode === "api_keys") {
+    return (
+      <div className="api-keys-container">
+        <h3>API Key Management</h3>
+        <p className="api-keys-description">
+          Manage your API keys for different providers. API keys are stored securely and required
+          for providers like OpenAI, Anthropic, Google, and OpenRouter. Ollama runs locally and
+          doesn't require an API key.
+        </p>
+
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
+
+        {/* List all providers with API key inputs */}
+        {availableProviders.map((provider) => {
+          const needsApiKey = requiresApiKey(provider);
+          const keySet = hasApiKey(provider);
+
+          return (
+            <div key={provider} className="api-key-item">
+              <h4>
+                {PROVIDER_DISPLAY_NAMES[provider] || provider}
+                <span className={`key-status-badge ${!needsApiKey ? 'not-required' : keySet ? 'set' : 'not-set'}`}>
+                  {!needsApiKey ? 'No API key needed' : keySet ? 'API Key Set' : 'Not Set'}
+                </span>
+              </h4>
+
+              {needsApiKey ? (
+                <>
+                  <div className="api-key-input-group">
+                    <input
+                      type="password"
+                      value={currentProvider === provider ? apiKeyInput : ''}
+                      onChange={(e) => {
+                        setCurrentProvider(provider);
+                        setApiKeyInput(e.target.value);
+                      }}
+                      placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[provider]} API key`}
+                      className="api-key-input"
+                    />
+                    <button
+                      onClick={() => {
+                        setCurrentProvider(provider);
+                        handleSetApiKey();
+                      }}
+                      className={`api-key-button ${keySet ? 'has-key' : ''}`}
+                      disabled={currentProvider === provider && !apiKeyInput.trim()}
+                    >
+                      {keySet ? '✓ Update Key' : 'Set API Key'}
+                    </button>
+                  </div>
+                  {keySet && (
+                    <div className="api-key-status">
+                      Current key: {apiKeys[provider]}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p style={{ color: '#666', fontSize: '14px', margin: '5px 0 0 0' }}>
+                  This provider runs locally and doesn't require an API key.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   // Render Embedding Provider settings
   return (
     <div className="provider-settings-container">
@@ -575,8 +650,13 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
             className="provider-select"
           >
             {embeddingProviders.map((provider) => (
-              <option key={provider} value={provider}>
+              <option
+                key={provider}
+                value={provider}
+                disabled={requiresApiKey(provider) && !hasApiKey(provider)}
+              >
                 {PROVIDER_DISPLAY_NAMES[provider] || provider}
+                {requiresApiKey(provider) && !hasApiKey(provider) ? ' (API key required)' : ''}
               </option>
             ))}
           </select>

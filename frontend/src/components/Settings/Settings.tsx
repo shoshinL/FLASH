@@ -61,7 +61,7 @@ export function Settings() {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [decks, setDecks] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"llm" | "embedding" | "anki">("llm");
+  const [activeTab, setActiveTab] = useState<"llm" | "embedding" | "api_keys" | "anki">("llm");
 
   useEffect(() => {
     fetchSettings();
@@ -200,6 +200,12 @@ export function Settings() {
           Embedding Provider
         </button>
         <button
+          className={`settings-tab ${activeTab === "api_keys" ? "active" : ""}`}
+          onClick={() => setActiveTab("api_keys")}
+        >
+          API Keys
+        </button>
+        <button
           className={`settings-tab ${activeTab === "anki" ? "active" : ""}`}
           onClick={() => setActiveTab("anki")}
         >
@@ -212,6 +218,8 @@ export function Settings() {
         <ProviderSettings mode="llm" />
       ) : activeTab === "embedding" ? (
         <ProviderSettings mode="embedding" />
+      ) : activeTab === "api_keys" ? (
+        <ProviderSettings mode="api_keys" />
       ) : (
         <div className="anki-settings">
           {error && <div className="error-message">{error}</div>}
