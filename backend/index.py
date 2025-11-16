@@ -66,35 +66,43 @@ def check_settings(window):
 
     alert_messages = []
 
+    # Check if ANY API key is set or if Ollama is available
+    all_api_keys = settings_manager.get_all_provider_api_keys()
+    has_any_api_key = len(all_api_keys) > 0
+
     # Check LLM provider configuration
     provider = provider_config.get('provider', 'openai')
     model = provider_config.get('model')
 
-    # Check if provider requires API key and if it's set
-    if provider != 'ollama':  # Ollama doesn't need an API key
-        api_key = provider_config.get('api_key')
-        if not api_key:
-            provider_name = provider.capitalize()
-            alert_messages.append(f"Please set your {provider_name} API key in the LLM Provider settings.")
+    # Only check API keys if none are set at all
+    if not has_any_api_key and provider != 'ollama':
+        alert_messages.append("Please set an API key in the LLM Provider settings to use cloud models, or select Ollama for local models.")
+    else:
+        # If keys exist, only warn about the SELECTED provider
+        if provider != 'ollama':
+            api_key = provider_config.get('api_key')
+            if not api_key:
+                provider_name = provider.capitalize()
+                alert_messages.append(f"Please set your {provider_name} API key or switch to a different provider.")
 
     # Check if LLM model is selected
     if not model:
-        alert_messages.append(f"Please select an LLM model in the LLM Provider settings.")
+        alert_messages.append("Please select an LLM model in the Provider settings.")
 
     # Check embedding provider configuration
     embedding_provider = embedding_config.get('provider')
     embedding_model = embedding_config.get('model')
 
-    if embedding_provider and embedding_provider != 'ollama':
-        # Check if embedding provider has API key (may share with LLM provider)
+    # Only warn about embedding provider if it's different from LLM provider and needs a key
+    if embedding_provider and embedding_provider != 'ollama' and embedding_provider != provider:
         embedding_api_key = settings_manager.get_provider_api_key(embedding_provider)
         if not embedding_api_key:
             provider_name = embedding_provider.capitalize()
-            alert_messages.append(f"Please set your {provider_name} API key in the Embedding Provider settings.")
+            alert_messages.append(f"Please set your {provider_name} API key for embeddings or use the same provider as your LLM.")
 
     # Check if embedding model is selected
     if not embedding_model:
-        alert_messages.append(f"Please select an embedding model in the Embedding Provider settings.")
+        alert_messages.append("Please select an embedding model in the Embedding Provider settings.")
 
     # Check Anki configuration
     if not settings['anki_data_location_valid']:
