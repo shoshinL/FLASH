@@ -381,18 +381,21 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     return <div className="provider-settings-loading">Loading provider settings...</div>;
   }
 
-  // Render LLM Provider settings
+  // Render LLM Model settings
   if (mode === "llm") {
     return (
       <div className="provider-settings-container">
-        <h3>LLM Provider Configuration</h3>
+        <h3>LLM Model</h3>
 
         {error && <div className="error-message">{error}</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}
 
-      {/* Provider Selection */}
+      {/* Model Provider Selection */}
       <div className="settings-item">
-        <label>Model Provider:</label>
+        <label>
+          Provider
+          <span className="info-icon" title="Select your LLM provider (OpenAI, Anthropic, Google, etc.)">ℹ</span>
+        </label>
         <select
           value={currentProvider}
           onChange={(e) => handleProviderChange(e.target.value)}
@@ -415,7 +418,8 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       {requiresApiKey(currentProvider) && (
         <div className="settings-item api-key-section">
           <label>
-            {PROVIDER_DISPLAY_NAMES[currentProvider]} API Key:
+            API Key
+            <span className="info-icon" title={`Your ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key - stored securely`}>ℹ</span>
           </label>
           <div className="api-key-input-group">
             <input
@@ -442,7 +446,10 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
       {/* Model Selection */}
       <div className="settings-item">
-        <label>Model:</label>
+        <label>
+          Model
+          <span className="info-icon" title="Choose the specific model to use for generation">ℹ</span>
+        </label>
         {modelLoading ? (
           <div className="model-loading">Loading models...</div>
         ) : availableModels.length > 0 ? (
@@ -474,29 +481,32 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       {/* Thinking/Reasoning Configuration */}
       {providerSupportsThinking && (
         <div className="thinking-config-section">
-          <h4>Thinking/Reasoning Settings</h4>
+          <h4>
+            Extended Thinking
+            <span className="info-icon" title="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
+          </h4>
 
           {/* Enable/Disable Toggle */}
-          <div className="settings-item">
+          <div className="settings-item checkbox-item">
             <label>
               <input
                 type="checkbox"
                 checked={thinkingEnabled}
                 onChange={(e) => handleThinkingConfigChange({ enabled: e.target.checked })}
               />
-              <span>Enable Extended Thinking/Reasoning</span>
+              <span>Enable extended thinking/reasoning</span>
             </label>
-            <p className="hint">
-              Extended thinking allows the model to spend more time reasoning before responding
-            </p>
           </div>
 
           {thinkingEnabled && (
-            <>
+            <div className="thinking-params">
               {/* Claude: Budget Tokens */}
               {currentProvider === 'anthropic' && (
                 <div className="settings-item">
-                  <label>Thinking Budget (tokens):</label>
+                  <label>
+                    Thinking Budget
+                    <span className="info-icon" title="Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more">ℹ</span>
+                  </label>
                   <input
                     type="number"
                     value={thinkingBudget}
@@ -506,51 +516,41 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                     step={500}
                     className="thinking-input"
                   />
-                  <span className="hint">
-                    More tokens = deeper thinking (costs more)
-                  </span>
+                  <span className="input-unit">tokens</span>
                 </div>
               )}
 
               {/* OpenAI: Reasoning Effort */}
               {currentProvider === 'openai' && (
                 <div className="settings-item">
-                  <label>Reasoning Effort:</label>
+                  <label>
+                    Reasoning Effort
+                    <span className="info-icon" title="Controls how much computational effort the model uses for reasoning">ℹ</span>
+                  </label>
                   <select
                     value={reasoningEffort}
                     onChange={(e) => handleThinkingConfigChange({ effort: e.target.value })}
                     className="thinking-select"
                   >
-                    <option value="low">Low (faster, cheaper)</option>
-                    <option value="medium">Medium (balanced)</option>
-                    <option value="high">High (slower, more thorough)</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
                   </select>
                 </div>
               )}
-
-              {/* Google/Ollama: Info only */}
-              {(currentProvider === 'google' || currentProvider === 'ollama') && (
-                <div className="settings-item">
-                  <p className="hint">
-                    {currentProvider === 'google'
-                      ? 'Thinking mode is enabled for this model'
-                      : 'This model supports native thinking mode'}
-                  </p>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
       )}
 
         {/* Apply Button */}
-        <div className="settings-item">
+        <div className="settings-item apply-button-container">
           <button
             onClick={handleApplyProvider}
             className="apply-button"
             disabled={!currentModel}
           >
-            Apply LLM Configuration
+            Save Configuration
           </button>
         </div>
       </div>
@@ -627,23 +627,22 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     );
   }
 
-  // Render Embedding Provider settings
+  // Render Embedding Model settings
   return (
     <div className="provider-settings-container">
       {/* Embedding Configuration Section */}
       <div className="embedding-settings-section">
-        <h3>Embedding Model Configuration</h3>
-        <p className="section-description">
-          Embeddings are used to convert text into numerical vectors for similarity search and retrieval.
-          You can use a different provider for embeddings than your LLM provider.
-        </p>
+        <h3>Embedding Model</h3>
 
         {embeddingError && <div className="error-message">{embeddingError}</div>}
         {embeddingSuccessMessage && <div className="success-message">{embeddingSuccessMessage}</div>}
 
         {/* Embedding Provider Selection */}
         <div className="settings-item">
-          <label>Embedding Provider:</label>
+          <label>
+            Provider
+            <span className="info-icon" title="Embeddings convert text to vectors for similarity search and document retrieval">ℹ</span>
+          </label>
           <select
             value={currentEmbeddingProvider}
             onChange={(e) => handleEmbeddingProviderChange(e.target.value)}
@@ -672,7 +671,10 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
         {/* Embedding Model Selection */}
         <div className="settings-item">
-          <label>Embedding Model:</label>
+          <label>
+            Model
+            <span className="info-icon" title="Choose the specific embedding model to use">ℹ</span>
+          </label>
           {embeddingModelLoading ? (
             <div className="model-loading">Loading embedding models...</div>
           ) : availableEmbeddingModels.length > 0 ? (
@@ -702,13 +704,13 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         </div>
 
         {/* Apply Embedding Configuration Button */}
-        <div className="settings-item">
+        <div className="settings-item apply-button-container">
           <button
             onClick={handleApplyEmbedding}
             className="apply-button"
             disabled={!currentEmbeddingModel}
           >
-            Apply Embedding Configuration
+            Save Configuration
           </button>
         </div>
       </div>

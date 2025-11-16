@@ -1,96 +1,143 @@
 .provider-settings-container {
-  padding: 20px;
-  max-width: 800px;
+  padding: 24px 32px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .provider-settings-container h3 {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 24px;
+  margin: 0 0 32px 0;
+  color: #1a1a1a;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .provider-settings-loading {
   text-align: center;
-  padding: 40px;
+  padding: 60px 20px;
   color: #666;
+  font-size: 15px;
 }
 
 .settings-item {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .settings-item label {
-  display: block;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
   font-weight: 600;
-  color: #555;
+  font-size: 14px;
+  color: #2c2c2c;
+  letter-spacing: 0.01em;
+}
+
+/* Info Icon Tooltip */
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  color: #888;
+  background-color: #f0f0f0;
+  border-radius: 50%;
+  cursor: help;
+  transition: all 0.2s ease;
+  font-style: normal;
+}
+
+.info-icon:hover {
+  background-color: #4CAF50;
+  color: white;
+  transform: scale(1.1);
 }
 
 .provider-select,
 .model-select {
   width: 100%;
-  padding: 10px;
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  padding: 11px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 14px;
   background-color: white;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
 .provider-select:hover,
 .model-select:hover {
-  border-color: #aaa;
+  border-color: #b0b0b0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .provider-select:focus,
 .model-select:focus {
   outline: none;
   border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .api-key-section {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  background-color: #fafafa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid #e8e8e8;
 }
 
 .api-key-input-group {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .api-key-input {
   flex: 1;
-  padding: 10px;
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  padding: 11px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 14px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s ease;
 }
 
 .api-key-input:focus {
   outline: none;
   border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .api-key-button {
-  padding: 10px 20px;
+  padding: 11px 24px;
   background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.api-key-button:hover {
+.api-key-button:hover:not(:disabled) {
   background-color: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.api-key-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.api-key-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .api-key-button.has-key {
@@ -99,6 +146,7 @@
 
 .api-key-button.has-key:hover {
   background-color: #0b7dda;
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
 }
 
 .api-key-status {
@@ -125,26 +173,44 @@
   background-color: #ffebee;
 }
 
+.apply-button-container {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e8e8e8;
+}
+
 .apply-button {
   width: 100%;
-  padding: 12px;
-  background-color: #4CAF50;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  transition: background-color 0.2s;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
 .apply-button:hover:not(:disabled) {
-  background-color: #45a049;
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
+}
+
+.apply-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
 .apply-button:disabled {
-  background-color: #ccc;
+  background: #e0e0e0;
+  color: #999;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .provider-info {
@@ -200,25 +266,11 @@
 }
 
 .embedding-settings-section {
-  margin-top: 40px;
-  padding-top: 30px;
-  border-top: 2px solid #e0e0e0;
+  /* No extra styling needed - inherits from parent */
 }
 
 .embedding-settings-section h3 {
-  color: #333;
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
-.section-description {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 20px;
-  padding: 10px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
+  /* Inherits from .provider-settings-container h3 */
 }
 
 @keyframes slideIn {
@@ -234,66 +286,85 @@
 
 /* Thinking/Reasoning Configuration */
 .thinking-config-section {
-  margin-top: 30px;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border: 2px solid #e0e0e0;
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+  border-radius: 12px;
+  border: 2px solid #e0e4e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .thinking-config-section h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px 0;
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.thinking-config-section .settings-item label {
+/* Checkbox Item */
+.checkbox-item {
+  margin-bottom: 16px !important;
+}
+
+.checkbox-item label {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 2px 0;
 }
 
-.thinking-config-section .settings-item label input[type="checkbox"] {
-  margin-top: 3px;
+.checkbox-item label input[type="checkbox"] {
   cursor: pointer;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  accent-color: #4CAF50;
 }
 
-.hint {
-  display: block;
-  margin-top: 6px;
-  margin-left: 28px;
-  font-size: 13px;
-  color: #666;
-  font-weight: normal;
-  line-height: 1.4;
+.checkbox-item label span {
+  user-select: none;
+}
+
+/* Thinking Parameters Container */
+.thinking-params {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .thinking-input,
 .thinking-select {
   width: 100%;
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  padding: 11px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 14px;
   background-color: white;
-  margin-top: 5px;
+  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
 .thinking-input:focus,
 .thinking-select:focus {
   outline: none;
   border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
-.thinking-config-section .settings-item .hint {
-  margin-left: 0;
-  margin-top: 5px;
+/* Input Unit Label */
+.input-unit {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
 }
 
 /* Provider select option disabled state */

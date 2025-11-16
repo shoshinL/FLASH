@@ -191,13 +191,13 @@ export function Settings() {
           className={`settings-tab ${activeTab === "llm" ? "active" : ""}`}
           onClick={() => setActiveTab("llm")}
         >
-          LLM Provider
+          LLM Model
         </button>
         <button
           className={`settings-tab ${activeTab === "embedding" ? "active" : ""}`}
           onClick={() => setActiveTab("embedding")}
         >
-          Embedding Provider
+          Embedding Model
         </button>
         <button
           className={`settings-tab ${activeTab === "api_keys" ? "active" : ""}`}
@@ -209,7 +209,7 @@ export function Settings() {
           className={`settings-tab ${activeTab === "anki" ? "active" : ""}`}
           onClick={() => setActiveTab("anki")}
         >
-          Anki Integration
+          Anki
         </button>
       </div>
 
