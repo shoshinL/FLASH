@@ -1,24 +1,25 @@
 import { useState, useEffect } from "react";
 import "./ProviderSettings.css";
 
-// Import custom hooks
+// Custom hooks
 import { useProviderConfig, useApiKeys, useModels, useThinkingConfig } from "../../hooks";
 
-// Import utilities
+// Reusable components
 import {
-  validateApiKey,
-  requiresApiKey,
-  hasApiKey,
-  groupModels,
-  estimateThinkingCost,
-  isProvidersResponse,
-  isEmbeddingConfig
-} from "../../utils";
+  ProviderSelector,
+  ModelSelector,
+  APIKeyInput,
+  ThinkingConfig,
+  SettingsLoadingSkeleton
+} from "../common";
 
-// Import constants
+// Utilities
+import { requiresApiKey, hasApiKey, isProvidersResponse, isEmbeddingConfig } from "../../utils";
+
+// Constants
 import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
 
-// Import types
+// Types
 import type { ProviderMode } from "../../types/provider";
 
 interface ProviderSettingsProps {
@@ -26,7 +27,7 @@ interface ProviderSettingsProps {
 }
 
 export function ProviderSettings({ mode }: ProviderSettingsProps) {
-  // === Custom Hooks ===
+  // === Hooks ===
   const llmConfig = useProviderConfig();
   const apiKeysManager = useApiKeys();
   const llmModels = useModels();
@@ -34,9 +35,6 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
   // === Local State ===
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
-  const [apiKeyInput, setApiKeyInput] = useState<string>("");
-  const [apiKeyValidation, setApiKeyValidation] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string>("openai");
 
   // Embedding-specific state
   const [embeddingProviders, setEmbeddingProviders] = useState<string[]>([]);
@@ -72,19 +70,16 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   // === Data Fetching ===
   const fetchProviderData = async () => {
     try {
-      // Fetch LLM providers
       const providersResp: unknown = await window.pywebview.api.get_available_providers();
       if (isProvidersResponse(providersResp)) {
         setAvailableProviders(providersResp.providers);
       }
 
-      // Fetch embedding providers
       const embeddingProvidersResp: unknown = await window.pywebview.api.get_embedding_providers();
       if (isProvidersResponse(embeddingProvidersResp)) {
         setEmbeddingProviders(embeddingProvidersResp.providers);
       }
 
-      // Fetch current embedding config
       const embeddingConfigResp: unknown = await window.pywebview.api.get_embedding_config();
       if (isEmbeddingConfig(embeddingConfigResp)) {
         setCurrentEmbeddingProvider(embeddingConfigResp.provider);
@@ -102,7 +97,6 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   const handleProviderChange = async (provider: string) => {
     llmConfig.setCurrentProvider(provider);
     llmConfig.setCurrentModel(null);
-    setApiKeyInput("");
     llmConfig.setSuccessMessage(null);
     await llmModels.fetchModels(provider, false);
   };
@@ -111,22 +105,9 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     await llmConfig.updateProviderConfig(llmConfig.currentProvider, model);
   };
 
-  const handleApiKeyInputChange = (provider: string, key: string) => {
-    setApiKeyInput(key);
-    const validation = validateApiKey(provider, key);
-    setApiKeyValidation(validation);
-  };
-
-  const handleSetApiKey = async (provider: string) => {
-    if (!apiKeyInput.trim()) {
-      llmConfig.setError("Please enter an API key");
-      return;
-    }
-
-    const success = await apiKeysManager.setApiKey(provider, apiKeyInput);
+  const handleSetApiKey = async (provider: string, key: string) => {
+    const success = await apiKeysManager.setApiKey(provider, key);
     if (success) {
-      setApiKeyInput("");
-      setApiKeyValidation(null);
       // Refresh models after setting API key
       if (provider === llmConfig.currentProvider) {
         await llmModels.fetchModels(provider, false);
@@ -135,6 +116,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         await embeddingModels.fetchModels(provider, true);
       }
     }
+    return success;
   };
 
   const handleDeleteApiKey = async (provider: string) => {
@@ -148,6 +130,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         await embeddingModels.fetchModels(provider, true);
       }
     }
+    return success;
   };
 
   const handleEmbeddingProviderChange = async (provider: string) => {
@@ -194,22 +177,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
   // === Loading State ===
   if (llmConfig.loading || apiKeysManager.loading) {
-    return (
-      <div className="provider-settings-container">
-        <div className="skeleton skeleton-title"></div>
-        <div className="skeleton-section">
-          <div className="skeleton skeleton-text" style={{ width: '20%', marginBottom: '10px' }}></div>
-          <div className="skeleton skeleton-select"></div>
-        </div>
-        <div className="skeleton-section">
-          <div className="skeleton skeleton-text" style={{ width: '15%', marginBottom: '10px' }}></div>
-          <div className="skeleton skeleton-select"></div>
-        </div>
-        <div className="skeleton-section">
-          <div className="skeleton skeleton-button"></div>
-        </div>
-      </div>
-    );
+    return <SettingsLoadingSkeleton />;
   }
 
   // === Render LLM Configuration ===
@@ -221,146 +189,36 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         {llmConfig.error && <div className="error-message">{llmConfig.error}</div>}
         {llmConfig.successMessage && <div className="success-message">{llmConfig.successMessage}</div>}
 
-        {/* Provider Selection */}
-        <div className="settings-item">
-          <label>
-            Provider
-            <span className="info-icon" data-tooltip="Select your LLM provider (OpenAI, Anthropic, Google, etc.)">ℹ</span>
-          </label>
-          <select
-            value={llmConfig.currentProvider}
-            onChange={(e) => handleProviderChange(e.target.value)}
-            className="provider-select"
-          >
-            {availableProviders.map((provider) => (
-              <option
-                key={provider}
-                value={provider}
-                disabled={requiresApiKey(provider) && !hasApiKey(provider, apiKeysManager.apiKeys)}
-              >
-                {PROVIDER_DISPLAY_NAMES[provider] || provider}
-                {requiresApiKey(provider) && !hasApiKey(provider, apiKeysManager.apiKeys) ? ' (API key required)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ProviderSelector
+          label="Provider"
+          value={llmConfig.currentProvider}
+          providers={availableProviders}
+          apiKeys={apiKeysManager.apiKeys}
+          onChange={handleProviderChange}
+          tooltip="Select your LLM provider (OpenAI, Anthropic, Google, etc.)"
+        />
 
-        {/* Model Selection */}
-        <div className="settings-item">
-          <label>
-            Model
-            <span className="info-icon" data-tooltip="Choose the specific model to use for generation">ℹ</span>
-          </label>
-          {llmModels.loading ? (
-            <div className="skeleton skeleton-select"></div>
-          ) : llmModels.models.length > 0 ? (
-            <select
-              value={llmConfig.currentModel || ""}
-              onChange={(e) => handleModelChange(e.target.value)}
-              className="model-select"
-            >
-              <option value="" disabled>
-                Select a model
-              </option>
-              {Object.entries(groupModels(llmConfig.currentProvider, llmModels.models, false)).map(([groupName, models]) => (
-                <optgroup key={groupName} label={groupName}>
-                  {models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          ) : (
-            <div className="no-models">
-              {llmConfig.currentProvider === 'ollama' ? (
-                <div>
-                  <strong>No Ollama models found.</strong>
-                  <br />
-                  Install models using these commands:
-                  <br />
-                  <code style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>
-                    ollama pull llama3.2<br />
-                    ollama pull deepseek-r1:1.5b<br />
-                    ollama pull qwen2.5:7b
-                  </code>
-                </div>
-              ) : requiresApiKey(llmConfig.currentProvider) && !hasApiKey(llmConfig.currentProvider, apiKeysManager.apiKeys) ? (
-                'Please set an API key first'
-              ) : (
-                'No models available'
-              )}
-            </div>
-          )}
-        </div>
+        <ModelSelector
+          label="Model"
+          provider={llmConfig.currentProvider}
+          models={llmModels.models}
+          selectedModel={llmConfig.currentModel}
+          loading={llmModels.loading}
+          apiKeys={apiKeysManager.apiKeys}
+          onChange={handleModelChange}
+          tooltip="Choose the specific model to use for generation"
+        />
 
-        {/* Thinking/Reasoning Configuration */}
         {thinkingConfig.supportsThinking && (
-          <>
-            <div className="settings-item checkbox-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={thinkingConfig.enabled}
-                  onChange={(e) => thinkingConfig.updateThinkingConfig({ enabled: e.target.checked })}
-                />
-                <span>Enable extended thinking/reasoning</span>
-                <span className="info-icon" data-tooltip="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
-              </label>
-            </div>
-
-            {thinkingConfig.enabled && (
-              <>
-                {/* Claude: Budget Tokens */}
-                {llmConfig.currentProvider === 'anthropic' && (
-                  <div className="settings-item">
-                    <label>
-                      Thinking Budget
-                      <span className="info-icon" data-tooltip="Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more">ℹ</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={thinkingConfig.budgetTokens}
-                      onChange={(e) => thinkingConfig.updateThinkingConfig({ budget_tokens: Number(e.target.value) })}
-                      min={500}
-                      max={10000}
-                      step={500}
-                      className="thinking-input"
-                    />
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-                      <span className="input-unit">{thinkingConfig.budgetTokens} tokens</span>
-                      <span style={{ marginLeft: '12px', color: '#888' }}>
-                        Est. cost per request: {estimateThinkingCost(thinkingConfig.budgetTokens)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* OpenAI: Reasoning Effort */}
-                {llmConfig.currentProvider === 'openai' && (
-                  <div className="settings-item">
-                    <label>
-                      Reasoning Effort
-                      <span className="info-icon" data-tooltip="Controls how much computational effort the model uses for reasoning">ℹ</span>
-                    </label>
-                    <select
-                      value={thinkingConfig.effort}
-                      onChange={(e) => thinkingConfig.updateThinkingConfig({ effort: e.target.value })}
-                      className="thinking-select"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                )}
-              </>
-            )}
-          </>
+          <ThinkingConfig
+            provider={llmConfig.currentProvider}
+            enabled={thinkingConfig.enabled}
+            budgetTokens={thinkingConfig.budgetTokens}
+            effort={thinkingConfig.effort}
+            onUpdate={thinkingConfig.updateThinkingConfig}
+          />
         )}
 
-        {/* Apply Button */}
         <div className="settings-item apply-button-container">
           <button
             onClick={() => llmConfig.updateProviderConfig(llmConfig.currentProvider, llmConfig.currentModel)}
@@ -402,56 +260,14 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
               </h4>
 
               {needsApiKey ? (
-                <>
-                  <div className="api-key-input-group">
-                    <input
-                      type="password"
-                      value={selectedProvider === provider ? apiKeyInput : ''}
-                      onChange={(e) => {
-                        setSelectedProvider(provider);
-                        handleApiKeyInputChange(provider, e.target.value);
-                      }}
-                      placeholder={`Enter ${PROVIDER_DISPLAY_NAMES[provider]} API key`}
-                      className="api-key-input"
-                    />
-                    <button
-                      onClick={() => {
-                        setSelectedProvider(provider);
-                        handleSetApiKey(provider);
-                      }}
-                      className={`api-key-button ${keySet ? 'has-key' : ''}`}
-                      disabled={selectedProvider === provider && !apiKeyInput.trim()}
-                    >
-                      {keySet ? '✓ Update Key' : 'Set API Key'}
-                    </button>
-                    {keySet && (
-                      <button
-                        onClick={() => handleDeleteApiKey(provider)}
-                        className="api-key-delete-button"
-                        title="Delete API key"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </div>
-                  {selectedProvider === provider && apiKeyValidation && (
-                    <div
-                      className="api-key-validation"
-                      style={{
-                        marginTop: '8px',
-                        fontSize: '13px',
-                        color: apiKeyValidation.startsWith('✓') ? '#2e7d32' : '#e65100'
-                      }}
-                    >
-                      {apiKeyValidation} • {apiKeyInput.length} characters
-                    </div>
-                  )}
-                  {keySet && (
-                    <div className="api-key-status">
-                      Current key: {apiKeysManager.apiKeys[provider]}
-                    </div>
-                  )}
-                </>
+                <APIKeyInput
+                  provider={provider}
+                  hasKey={keySet}
+                  maskedKey={apiKeysManager.apiKeys[provider]}
+                  onSet={(key) => handleSetApiKey(provider, key)}
+                  onDelete={() => handleDeleteApiKey(provider)}
+                  showStatus={true}
+                />
               ) : (
                 <p style={{ color: '#666', fontSize: '14px', margin: '5px 0 0 0' }}>
                   This provider runs locally and doesn't require an API key.
@@ -473,31 +289,15 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         {embeddingError && <div className="error-message">{embeddingError}</div>}
         {embeddingSuccessMessage && <div className="success-message">{embeddingSuccessMessage}</div>}
 
-        {/* Embedding Provider Selection */}
-        <div className="settings-item">
-          <label>
-            Provider
-            <span className="info-icon" data-tooltip="Embeddings convert text to vectors for similarity search and document retrieval">ℹ</span>
-          </label>
-          <select
-            value={currentEmbeddingProvider}
-            onChange={(e) => handleEmbeddingProviderChange(e.target.value)}
-            className="provider-select"
-          >
-            {embeddingProviders.map((provider) => (
-              <option
-                key={provider}
-                value={provider}
-                disabled={requiresApiKey(provider) && !hasApiKey(provider, apiKeysManager.apiKeys)}
-              >
-                {PROVIDER_DISPLAY_NAMES[provider] || provider}
-                {requiresApiKey(provider) && !hasApiKey(provider, apiKeysManager.apiKeys) ? ' (API key required)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ProviderSelector
+          label="Provider"
+          value={currentEmbeddingProvider}
+          providers={embeddingProviders}
+          apiKeys={apiKeysManager.apiKeys}
+          onChange={handleEmbeddingProviderChange}
+          tooltip="Embeddings convert text to vectors for similarity search and document retrieval"
+        />
 
-        {/* Warning if API key required */}
         {requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider, apiKeysManager.apiKeys) && (
           <div className="warning-message">
             ⚠️ {PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider]} requires an API key.
@@ -505,57 +305,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           </div>
         )}
 
-        {/* Embedding Model Selection */}
-        <div className="settings-item">
-          <label>
-            Model
-            <span className="info-icon" data-tooltip="Choose the specific embedding model to use">ℹ</span>
-          </label>
-          {embeddingModels.loading ? (
-            <div className="skeleton skeleton-select"></div>
-          ) : embeddingModels.models.length > 0 ? (
-            <select
-              value={currentEmbeddingModel || ""}
-              onChange={(e) => handleEmbeddingModelChange(e.target.value)}
-              className="model-select"
-            >
-              <option value="" disabled>
-                Select an embedding model
-              </option>
-              {Object.entries(groupModels(currentEmbeddingProvider, embeddingModels.models, true)).map(([groupName, models]) => (
-                <optgroup key={groupName} label={groupName}>
-                  {models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          ) : (
-            <div className="no-models">
-              {currentEmbeddingProvider === 'ollama' ? (
-                <div>
-                  <strong>No Ollama embedding models found.</strong>
-                  <br />
-                  Install embedding models using these commands:
-                  <br />
-                  <code style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>
-                    ollama pull snowflake-arctic-embed2:latest<br />
-                    ollama pull nomic-embed-text<br />
-                    ollama pull mxbai-embed-large
-                  </code>
-                </div>
-              ) : requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider, apiKeysManager.apiKeys) ? (
-                'Please set an API key first'
-              ) : (
-                'No embedding models available'
-              )}
-            </div>
-          )}
-        </div>
+        <ModelSelector
+          label="Model"
+          provider={currentEmbeddingProvider}
+          models={embeddingModels.models}
+          selectedModel={currentEmbeddingModel}
+          loading={embeddingModels.loading}
+          isEmbedding={true}
+          apiKeys={apiKeysManager.apiKeys}
+          onChange={handleEmbeddingModelChange}
+          tooltip="Choose the specific embedding model to use"
+        />
 
-        {/* Apply Embedding Configuration Button */}
         <div className="settings-item apply-button-container">
           <button
             onClick={handleApplyEmbedding}
