@@ -48,12 +48,58 @@
   cursor: help;
   transition: all 0.2s ease;
   font-style: normal;
+  position: relative;
 }
 
 .info-icon:hover {
   background-color: #4CAF50;
   color: white;
   transform: scale(1.1);
+}
+
+/* Custom Tooltip */
+.info-icon[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background-color: #2c2c2c;
+  color: white;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 250px;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip arrow */
+.info-icon[data-tooltip]::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #2c2c2c;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+
+/* Show tooltip on hover */
+.info-icon[data-tooltip]:hover::before,
+.info-icon[data-tooltip]:hover::after {
+  opacity: 1;
 }
 
 .provider-select,

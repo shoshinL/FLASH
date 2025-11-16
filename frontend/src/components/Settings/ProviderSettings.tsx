@@ -369,8 +369,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     // Save to backend
     try {
       await window.pywebview.api.set_thinking_config(newConfig);
-      setSuccessMessage("Thinking configuration updated!");
-      setTimeout(() => setSuccessMessage(null), 3000);
+      // Silently save without showing success message
     } catch (err) {
       console.error("Error saving thinking config:", err);
       setError("Failed to save thinking configuration");
@@ -394,7 +393,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       <div className="settings-item">
         <label>
           Provider
-          <span className="info-icon" title="Select your LLM provider (OpenAI, Anthropic, Google, etc.)">ℹ</span>
+          <span className="info-icon" data-tooltip="Select your LLM provider (OpenAI, Anthropic, Google, etc.)">ℹ</span>
         </label>
         <select
           value={currentProvider}
@@ -419,7 +418,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         <div className="settings-item api-key-section">
           <label>
             API Key
-            <span className="info-icon" title={`Your ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key - stored securely`}>ℹ</span>
+            <span className="info-icon" data-tooltip={`Your ${PROVIDER_DISPLAY_NAMES[currentProvider]} API key - stored securely`}>ℹ</span>
           </label>
           <div className="api-key-input-group">
             <input
@@ -448,7 +447,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
       <div className="settings-item">
         <label>
           Model
-          <span className="info-icon" title="Choose the specific model to use for generation">ℹ</span>
+          <span className="info-icon" data-tooltip="Choose the specific model to use for generation">ℹ</span>
         </label>
         {modelLoading ? (
           <div className="model-loading">Loading models...</div>
@@ -490,7 +489,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                 onChange={(e) => handleThinkingConfigChange({ enabled: e.target.checked })}
               />
               <span>Enable extended thinking/reasoning</span>
-              <span className="info-icon" title="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
+              <span className="info-icon" data-tooltip="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
             </label>
           </div>
 
@@ -501,7 +500,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                 <div className="settings-item">
                   <label>
                     Thinking Budget
-                    <span className="info-icon" title="Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more">ℹ</span>
+                    <span className="info-icon" data-tooltip="Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more">ℹ</span>
                   </label>
                   <input
                     type="number"
@@ -521,7 +520,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                 <div className="settings-item">
                   <label>
                     Reasoning Effort
-                    <span className="info-icon" title="Controls how much computational effort the model uses for reasoning">ℹ</span>
+                    <span className="info-icon" data-tooltip="Controls how much computational effort the model uses for reasoning">ℹ</span>
                   </label>
                   <select
                     value={reasoningEffort}
@@ -637,7 +636,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         <div className="settings-item">
           <label>
             Provider
-            <span className="info-icon" title="Embeddings convert text to vectors for similarity search and document retrieval">ℹ</span>
+            <span className="info-icon" data-tooltip="Embeddings convert text to vectors for similarity search and document retrieval">ℹ</span>
           </label>
           <select
             value={currentEmbeddingProvider}
@@ -669,7 +668,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         <div className="settings-item">
           <label>
             Model
-            <span className="info-icon" title="Choose the specific embedding model to use">ℹ</span>
+            <span className="info-icon" data-tooltip="Choose the specific embedding model to use">ℹ</span>
           </label>
           {embeddingModelLoading ? (
             <div className="model-loading">Loading embedding models...</div>
