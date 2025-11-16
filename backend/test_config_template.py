@@ -15,17 +15,18 @@ API_KEYS = {
 
 # Models to test for each provider
 TEST_MODELS = {
-    "openai": "gpt-4o-mini",  # Fast and cheap for testing
-    "anthropic": "claude-3-5-haiku-20241022",  # Fast and cheap
-    "google": "gemini-2.0-flash-exp",  # Fast
-    "openrouter": "anthropic/claude-3.5-sonnet",  # Popular model
-    "ollama": "llama3.2",  # Common local model
+    "openai": "gpt-4.1-2025-04-14",  # Fast and cheap for testing
+    "anthropic": "claude-haiku-4-5-20251001",  # Fast and cheap
+    "google": "gemini-2.0-flash-lite",  # Fast
+    "openrouter": "openai/gpt-4.1",  # Popular model
+    "ollama": "cogito:32b",  # Common local model
 }
 
 # Thinking models to test (if you have access)
 THINKING_MODELS = {
-    "openai": "o3-mini",  # OpenAI reasoning model
-    "google": "gemini-2.0-flash-thinking-exp-1219",  # Gemini thinking model
+    "openai": "o3-mini-2025-01-31",  # OpenAI reasoning model
+    "google": "gemini-2.5-flash-lite",  # Gemini thinking model
+    "ollama": "qwen:32b"
 }
 
 # Embedding models to test for each provider
