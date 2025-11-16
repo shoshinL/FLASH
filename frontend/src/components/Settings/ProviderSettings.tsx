@@ -385,7 +385,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   if (mode === "llm") {
     return (
       <div className="provider-settings-container">
-        <h3>LLM Model</h3>
+        <h3>Language Model</h3>
 
         {error && <div className="error-message">{error}</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}
@@ -480,12 +480,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
       {/* Thinking/Reasoning Configuration */}
       {providerSupportsThinking && (
-        <div className="thinking-config-section">
-          <h4>
-            Extended Thinking
-            <span className="info-icon" title="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
-          </h4>
-
+        <>
           {/* Enable/Disable Toggle */}
           <div className="settings-item checkbox-item">
             <label>
@@ -495,11 +490,12 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                 onChange={(e) => handleThinkingConfigChange({ enabled: e.target.checked })}
               />
               <span>Enable extended thinking/reasoning</span>
+              <span className="info-icon" title="Allow the model to spend more time reasoning before responding - improves quality but increases cost">ℹ</span>
             </label>
           </div>
 
           {thinkingEnabled && (
-            <div className="thinking-params">
+            <>
               {/* Claude: Budget Tokens */}
               {currentProvider === 'anthropic' && (
                 <div className="settings-item">
@@ -538,9 +534,9 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
                   </select>
                 </div>
               )}
-            </div>
+            </>
           )}
-        </div>
+        </>
       )}
 
         {/* Apply Button */}

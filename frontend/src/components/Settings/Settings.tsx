@@ -191,7 +191,7 @@ export function Settings() {
           className={`settings-tab ${activeTab === "llm" ? "active" : ""}`}
           onClick={() => setActiveTab("llm")}
         >
-          LLM Model
+          Language Model
         </button>
         <button
           className={`settings-tab ${activeTab === "embedding" ? "active" : ""}`}
