@@ -36,9 +36,9 @@ class LLMProvider(ABC):
             thinking_config: Optional thinking/reasoning configuration
                 {
                     "enabled": bool,
-                    "budget_tokens": int,  # For Claude
-                    "effort": str,         # For OpenAI (low/medium/high)
-                    "summary": str         # For OpenAI (auto/concise/detailed)
+                    "budget_tokens": int,  # For Claude extended thinking
+                    "effort": str,         # For OpenAI reasoning (low/medium/high)
+                    "summary": str         # Deprecated (not used - requires org verification)
                 }
         """
         pass
@@ -142,9 +142,9 @@ class OpenAIProvider(LLMProvider):
         # Reasoning models get reasoning config if enabled
         if is_reasoning_model and thinking_config and thinking_config.get("enabled"):
             # OpenAI reasoning models support 'reasoning' parameter
+            # Note: 'summary' requires organization verification, so we skip it
             kwargs["reasoning"] = {
-                "effort": thinking_config.get("effort", "medium"),
-                "summary": thinking_config.get("summary", "auto")
+                "effort": thinking_config.get("effort", "medium")
             }
         # Standard models get temperature
         elif not is_reasoning_model:

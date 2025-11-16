@@ -626,7 +626,7 @@ class SettingsManager:
             'enabled': False,
             'budget_tokens': 2000,      # For Claude
             'effort': 'medium',         # For OpenAI (low/medium/high)
-            'summary': 'auto'           # For OpenAI (auto/concise/detailed)
+            'summary': 'auto'           # Deprecated (kept for backward compatibility, not used)
         }
 
     def set_thinking_config(self, config: Dict[str, Any]) -> None:

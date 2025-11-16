@@ -26,7 +26,7 @@ TEST_MODELS = {
 THINKING_MODELS = {
     "openai": "o3-mini-2025-01-31",  # OpenAI reasoning model
     "google": "gemini-2.5-flash-lite",  # Gemini thinking model
-    "ollama": "qwen:32b"
+    "ollama": "qwen3:32b"  # Ollama thinking model
 }
 
 # Embedding models to test for each provider

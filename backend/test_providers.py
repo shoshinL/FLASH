@@ -541,8 +541,8 @@ def test_thinking_model(provider_name: str, api_key: Optional[str], results: Tes
         thinking_config = {
             "enabled": True,
             "budget_tokens": 2000,     # For Claude
-            "effort": "medium",         # For OpenAI
-            "summary": "auto"           # For OpenAI
+            "effort": "medium",         # For OpenAI (summary not used - requires org verification)
+            "summary": "auto"           # Deprecated (not used)
         }
 
         llm = provider.get_llm(thinking_config=thinking_config)

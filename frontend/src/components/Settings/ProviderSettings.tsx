@@ -509,33 +509,18 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
 
               {/* OpenAI: Reasoning Effort */}
               {currentProvider === 'openai' && (
-                <>
-                  <div className="settings-item">
-                    <label>Reasoning Effort:</label>
-                    <select
-                      value={reasoningEffort}
-                      onChange={(e) => handleThinkingConfigChange({ effort: e.target.value })}
-                      className="thinking-select"
-                    >
-                      <option value="low">Low (faster, cheaper)</option>
-                      <option value="medium">Medium (balanced)</option>
-                      <option value="high">High (slower, more thorough)</option>
-                    </select>
-                  </div>
-
-                  <div className="settings-item">
-                    <label>Reasoning Summary:</label>
-                    <select
-                      value={reasoningSummary}
-                      onChange={(e) => handleThinkingConfigChange({ summary: e.target.value })}
-                      className="thinking-select"
-                    >
-                      <option value="auto">Auto</option>
-                      <option value="concise">Concise</option>
-                      <option value="detailed">Detailed</option>
-                    </select>
-                  </div>
-                </>
+                <div className="settings-item">
+                  <label>Reasoning Effort:</label>
+                  <select
+                    value={reasoningEffort}
+                    onChange={(e) => handleThinkingConfigChange({ effort: e.target.value })}
+                    className="thinking-select"
+                  >
+                    <option value="low">Low (faster, cheaper)</option>
+                    <option value="medium">Medium (balanced)</option>
+                    <option value="high">High (slower, more thorough)</option>
+                  </select>
+                </div>
               )}
 
               {/* Google/Ollama: Info only */}
