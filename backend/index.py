@@ -62,19 +62,43 @@ def check_settings(window):
     settings_manager = SettingsContext.get_settings_manager()
     settings = settings_manager.get_settings()
     provider_config = settings_manager.get_provider_config()
+    embedding_config = settings_manager.get_embedding_config()
 
     alert_messages = []
 
-    # Check if provider requires API key and if it's set
+    # Check LLM provider configuration
     provider = provider_config.get('provider', 'openai')
+    model = provider_config.get('model')
+
+    # Check if provider requires API key and if it's set
     if provider != 'ollama':  # Ollama doesn't need an API key
         api_key = provider_config.get('api_key')
         if not api_key:
             provider_name = provider.capitalize()
-            alert_messages.append(f"Please set your {provider_name} API key in the settings.")
+            alert_messages.append(f"Please set your {provider_name} API key in the LLM Provider settings.")
 
+    # Check if LLM model is selected
+    if not model:
+        alert_messages.append(f"Please select an LLM model in the LLM Provider settings.")
+
+    # Check embedding provider configuration
+    embedding_provider = embedding_config.get('provider')
+    embedding_model = embedding_config.get('model')
+
+    if embedding_provider and embedding_provider != 'ollama':
+        # Check if embedding provider has API key (may share with LLM provider)
+        embedding_api_key = settings_manager.get_api_key(embedding_provider)
+        if not embedding_api_key:
+            provider_name = embedding_provider.capitalize()
+            alert_messages.append(f"Please set your {provider_name} API key in the Embedding Provider settings.")
+
+    # Check if embedding model is selected
+    if not embedding_model:
+        alert_messages.append(f"Please select an embedding model in the Embedding Provider settings.")
+
+    # Check Anki configuration
     if not settings['anki_data_location_valid']:
-        alert_messages.append("Please select a valid Anki database file (prefs21.db) in the settings.")
+        alert_messages.append("Please select a valid Anki database file (prefs21.db) in the Anki Integration settings.")
 
     if alert_messages:
         window.evaluate_js(custom_alert(alert_messages, 7000))
