@@ -81,10 +81,12 @@ class OpenAIProvider(LLMProvider):
                 from openai import OpenAI
                 client = OpenAI(api_key=self.api_key)
                 models = client.models.list()
-                # Filter for chat models (gpt-* and o1-*)
+                # Filter for chat models only (exclude image, audio, embedding models)
+                excluded_prefixes = ('dall-e', 'whisper', 'tts', 'text-embedding', 'babbage', 'davinci')
                 model_ids = [
                     model.id for model in models.data
-                    if model.id.startswith(('gpt-', 'o1-', 'o3-'))
+                    if (model.id.startswith(('gpt-', 'o1-', 'o3-')) and
+                        not model.id.startswith(excluded_prefixes))
                 ]
                 if model_ids:
                     # Sort with popular models first, then alphabetically

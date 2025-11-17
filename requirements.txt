@@ -19,3 +19,5 @@ tiktoken
 tenacity==8.3.0
 cryptography
 requests
+google-generativeai
+anthropic
