@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 @require_llm
 def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, generated_questions):
     logger.debug("Starting QuestionGenerator")
-    parser = JsonOutputParser(pydantic_object=Questions)
+    parser = PydanticOutputParser(pydantic_object=Questions)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -78,7 +78,7 @@ def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, 
 @require_llm
 def QuestionsDeduplicator(llm, questions, n_questions):
     logger.debug("Starting QuestionsDeduplicator")
-    parser = JsonOutputParser(pydantic_object=Questions)
+    parser = PydanticOutputParser(pydantic_object=Questions)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -111,7 +111,7 @@ def QuestionsDeduplicator(llm, questions, n_questions):
 
 @require_llm
 def BasicNoteGenerator(llm, question_with_answer):
-    parser = JsonOutputParser(pydantic_object=BasicModel)
+    parser = PydanticOutputParser(pydantic_object=BasicModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)    
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
@@ -143,7 +143,7 @@ def BasicNoteGenerator(llm, question_with_answer):
 
 @require_llm
 def BasicAndReversedNoteGenerator(llm, question_with_answer):
-    parser = JsonOutputParser(pydantic_object=BasicAndReversedModel)
+    parser = PydanticOutputParser(pydantic_object=BasicAndReversedModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
@@ -176,7 +176,7 @@ def BasicAndReversedNoteGenerator(llm, question_with_answer):
 
 @require_llm
 def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
-    parser = JsonOutputParser(pydantic_object=BasicTypeInAnswerModel)
+    parser = PydanticOutputParser(pydantic_object=BasicTypeInAnswerModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
