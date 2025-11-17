@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./ProviderSettings.css";
 
 // Custom hooks
-import { useProviderConfig, useApiKeys, useModels, useThinkingConfig } from "../../hooks";
+import { useProviderConfig, useApiKeys, useModels, useThinkingConfig, useProviderKeyStatus } from "../../hooks";
 
 // Reusable components
 import {
@@ -14,7 +14,7 @@ import {
 } from "../common";
 
 // Utilities
-import { requiresApiKey, hasApiKey, isProvidersResponse, isEmbeddingConfig } from "../../utils";
+import { isProvidersResponse, isEmbeddingConfig } from "../../utils";
 
 // Constants
 import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
@@ -34,12 +34,17 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   const llmModels = useModels();
   const thinkingConfig = useThinkingConfig();
 
+  // Embedding-specific state needs to be declared first
+  const [currentEmbeddingProvider, setCurrentEmbeddingProvider] = useState<string>("openai");
+
+  // Provider key status for embedding provider
+  const embeddingKeyStatus = useProviderKeyStatus(currentEmbeddingProvider, apiKeysManager.apiKeys);
+
   // === Local State ===
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
 
   // Embedding-specific state
   const [embeddingProviders, setEmbeddingProviders] = useState<string[]>([]);
-  const [currentEmbeddingProvider, setCurrentEmbeddingProvider] = useState<string>("openai");
   const [currentEmbeddingModel, setCurrentEmbeddingModel] = useState<string | null>(null);
   const embeddingModels = useModels();
   const [embeddingError, setEmbeddingError] = useState<string | null>(null);
@@ -248,23 +253,22 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
         {apiKeysManager.successMessage && <div className="success-message">{apiKeysManager.successMessage}</div>}
 
         {availableProviders.map((provider) => {
-          const needsApiKey = requiresApiKey(provider);
-          const keySet = hasApiKey(provider, apiKeysManager.apiKeys);
+          const { needsApiKey, hasKey, maskedKey } = useProviderKeyStatus(provider, apiKeysManager.apiKeys);
 
           return (
             <div key={provider} className="api-key-item">
               <h4>
                 {PROVIDER_DISPLAY_NAMES[provider] || provider}
-                <span className={`key-status-badge ${!needsApiKey ? 'not-required' : keySet ? 'set' : 'not-set'}`}>
-                  {!needsApiKey ? 'No API key needed' : keySet ? 'API Key Set' : 'Not Set'}
+                <span className={`key-status-badge ${!needsApiKey ? 'not-required' : hasKey ? 'set' : 'not-set'}`}>
+                  {!needsApiKey ? 'No API key needed' : hasKey ? 'API Key Set' : 'Not Set'}
                 </span>
               </h4>
 
               {needsApiKey ? (
                 <APIKeyInput
                   provider={provider}
-                  hasKey={keySet}
-                  maskedKey={apiKeysManager.apiKeys[provider]}
+                  hasKey={hasKey}
+                  maskedKey={maskedKey}
                   onSet={(key) => handleSetApiKey(provider, key)}
                   onDelete={() => handleDeleteApiKey(provider)}
                   showStatus={true}
@@ -299,7 +303,7 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
           tooltip={TOOLTIPS.EMBEDDING_PROVIDER}
         />
 
-        {requiresApiKey(currentEmbeddingProvider) && !hasApiKey(currentEmbeddingProvider, apiKeysManager.apiKeys) && (
+        {embeddingKeyStatus.needsApiKey && !embeddingKeyStatus.hasKey && (
           <div className="warning-message">
             {INFO.API_KEY_REQUIRED_TAB(PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider])}
           </div>

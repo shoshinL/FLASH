@@ -1,59 +1,8 @@
 import { useState, useEffect } from "react";
 import "./Settings.css";
 import { ProviderSettings } from "./ProviderSettings";
-
-interface Settings {
-  anki_db_path: string;
-  profile: string;
-  deck_name: string;
-  api_key_set: boolean;
-  anki_data_location_valid: boolean;
-}
-
-interface ProfilesResponse {
-  profiles: string[];
-}
-
-interface DecksResponse {
-  decks: Record<string, number>;
-}
-
-interface AnkiPathResponse {
-  anki_db_path: string;
-  profile: string;
-  deck_name: string;
-  profiles: string[];
-  decks: Record<string, number>;
-}
-
-function isSettings(obj: any): obj is Settings {
-  return (
-    typeof obj === "object" &&
-    typeof obj.anki_db_path === "string" &&
-    typeof obj.profile === "string" &&
-    typeof obj.deck_name === "string" &&
-    typeof obj.api_key_set === "boolean"
-  );
-}
-
-function isProfilesResponse(obj: any): obj is ProfilesResponse {
-  return typeof obj === "object" && Array.isArray(obj.profiles);
-}
-
-function isDecksResponse(obj: any): obj is DecksResponse {
-  return typeof obj === "object" && typeof obj.decks === "object";
-}
-
-function isAnkiPathResponse(obj: any): obj is AnkiPathResponse {
-  return (
-    typeof obj === "object" &&
-    typeof obj.anki_db_path === "string" &&
-    typeof obj.profile === "string" &&
-    typeof obj.deck_name === "string" &&
-    Array.isArray(obj.profiles) &&
-    typeof obj.decks === "object"
-  );
-}
+import type { Settings, ProfilesResponse, DecksResponse, AnkiPathResponse } from "../../types/settings";
+import { isSettings, isProfilesResponse, isDecksResponse, isAnkiPathResponse } from "../../utils/typeGuards";
 
 
 export function Settings() {
