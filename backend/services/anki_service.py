@@ -136,7 +136,7 @@ class AnkiService:
             return []
         return get_profiles(anki_db_path)
 
-    def upsert_anki_db_path(self, path: str) -> Dict[str, Any]:
+    def set_anki_db_path(self, path: str) -> Dict[str, Any]:
         """
         Set the Anki database path and initialize profiles/decks.
 
@@ -146,7 +146,7 @@ class AnkiService:
         Returns:
             Dictionary with Anki configuration
         """
-        logging.debug(f"Upserting Anki DB path: {path}")
+        logging.debug(f"Setting Anki DB path: {path}")
         self.repository.upsert_setting('anki_db_path', path)
 
         self.anki_db_path = path
@@ -185,7 +185,7 @@ class AnkiService:
                 "deck_name": ""
             }
 
-    def upsert_profile(self, profile: str) -> Dict[str, Any]:
+    def set_profile(self, profile: str) -> Dict[str, Any]:
         """
         Set the active Anki profile.
 
@@ -213,7 +213,7 @@ class AnkiService:
             "deck_name": self.deck_name
         }
 
-    def upsert_deck_name(self, deck_name: str) -> None:
+    def set_deck_name(self, deck_name: str) -> None:
         """
         Set the active deck.
 

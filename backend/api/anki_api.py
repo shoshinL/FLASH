@@ -63,7 +63,7 @@ class AnkiAPI(BaseAPI):
             file_types=file_types
         )
         if result and result[0]:
-            return self.settings_manager.upsert_anki_db_path(result[0])
+            return self.settings_manager.set_anki_db_path(result[0])
         return {"error": "No file selected"}
 
     def set_profile(self, profile):
@@ -76,7 +76,7 @@ class AnkiAPI(BaseAPI):
         Returns:
             Dictionary with configuration
         """
-        return self.settings_manager.upsert_profile(profile)
+        return self.settings_manager.set_profile(profile)
 
     def set_deck(self, deck_name):
         """
@@ -88,5 +88,5 @@ class AnkiAPI(BaseAPI):
         Returns:
             Success status
         """
-        self.settings_manager.upsert_deck_name(deck_name)
+        self.settings_manager.set_deck_name(deck_name)
         return {"success": True, "deck_name": deck_name}

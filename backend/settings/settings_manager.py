@@ -93,17 +93,17 @@ class SettingsManager:
         """Get all decks for a profile."""
         return self.anki_service.get_decks(profile)
 
-    def upsert_anki_db_path(self, path: str) -> Dict[str, Any]:
+    def set_anki_db_path(self, path: str) -> Dict[str, Any]:
         """Set Anki database path."""
-        return self.anki_service.upsert_anki_db_path(path)
+        return self.anki_service.set_anki_db_path(path)
 
-    def upsert_profile(self, profile: str) -> Dict[str, Any]:
+    def set_profile(self, profile: str) -> Dict[str, Any]:
         """Set active Anki profile."""
-        return self.anki_service.upsert_profile(profile)
+        return self.anki_service.set_profile(profile)
 
-    def upsert_deck_name(self, deck_name: str) -> None:
+    def set_deck_name(self, deck_name: str) -> None:
         """Set active deck."""
-        self.anki_service.upsert_deck_name(deck_name)
+        self.anki_service.set_deck_name(deck_name)
 
     def add_generated_cards_to_deck(self, filename: str, notes: List[Dict[str, str]]) -> None:
         """Add generated flashcards to deck."""
