@@ -275,4 +275,5 @@ def ListNoteGenerator(llm, question_with_answer):
     )
     chain = prompt | llm | fixing_parser
     data = chain.invoke({"question_with_answer": question_with_answer, "type": ListNote.type, "how_to_use": ListNote.how_to_use, "examples": ListNote.examples, "counter_examples": ListNote.counter_examples})
+    logger.debug(f"ListNoteGenerator generated data: {data}")
     return data
