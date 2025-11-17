@@ -3,6 +3,7 @@ pywebview
 pyinstaller; sys_platform != 'darwin'
 py2app; sys_platform == 'darwin'
 anki
+protobuf>=6.31.1
 langchain
 langchain_core
 langchain_openai
