@@ -72,7 +72,12 @@ def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, 
     chain = prompt | llm | fixing_parser
     result = chain.invoke({"document": questioning_chunk, "n_questions": n_questions, "questioning_context": questioning_context, "generated_questions": generated_questions})
     logger.debug(f"Generated Questions: {result}")
-    
+
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(result, 'model_dump'):
+        return result.model_dump()
+    elif hasattr(result, 'dict'):
+        return result.dict()
     return result
 
 @require_llm
@@ -106,6 +111,11 @@ def QuestionsDeduplicator(llm, questions, n_questions):
     chain = prompt | llm | fixing_parser
     result = chain.invoke({"questions": questions, "n_questions": n_questions})
     logger.debug(f"Deduplicated Questions: {result}")
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(result, 'model_dump'):
+        return result.model_dump()
+    elif hasattr(result, 'dict'):
+        return result.dict()
     return result
 
 
@@ -139,7 +149,13 @@ def BasicNoteGenerator(llm, question_with_answer):
     partial_variables={"format_instructions": format_instructions},
     )
     chain = prompt | llm | fixing_parser
-    return chain.invoke({"question_with_answer": question_with_answer, "type": BasicNote.type, "how_to_use": BasicNote.how_to_use, "examples": BasicNote.examples, "counter_examples": BasicNote.counter_examples})
+    data = chain.invoke({"question_with_answer": question_with_answer, "type": BasicNote.type, "how_to_use": BasicNote.how_to_use, "examples": BasicNote.examples, "counter_examples": BasicNote.counter_examples})
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(data, 'model_dump'):
+        return data.model_dump()
+    elif hasattr(data, 'dict'):
+        return data.dict()
+    return data
 
 @require_llm
 def BasicAndReversedNoteGenerator(llm, question_with_answer):
@@ -172,7 +188,13 @@ def BasicAndReversedNoteGenerator(llm, question_with_answer):
     partial_variables={"format_instructions": format_instructions},
     )
     chain = prompt | llm | fixing_parser
-    return chain.invoke({"question_with_answer": question_with_answer, "type": BasicAndReversedNote.type, "how_to_use": BasicAndReversedNote.how_to_use, "examples": BasicAndReversedNote.examples, "counter_examples": BasicAndReversedNote.counter_examples})
+    data = chain.invoke({"question_with_answer": question_with_answer, "type": BasicAndReversedNote.type, "how_to_use": BasicAndReversedNote.how_to_use, "examples": BasicAndReversedNote.examples, "counter_examples": BasicAndReversedNote.counter_examples})
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(data, 'model_dump'):
+        return data.model_dump()
+    elif hasattr(data, 'dict'):
+        return data.dict()
+    return data
 
 @require_llm
 def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
@@ -205,7 +227,13 @@ def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
     partial_variables={"format_instructions": format_instructions},
     )
     chain = prompt | llm | fixing_parser
-    return chain.invoke({"question_with_answer": question_with_answer, "type": BasicTypeInAnswerNote.type, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
+    data = chain.invoke({"question_with_answer": question_with_answer, "type": BasicTypeInAnswerNote.type, "how_to_use": BasicTypeInAnswerNote.how_to_use, "examples": BasicTypeInAnswerNote.examples, "counter_examples": BasicTypeInAnswerNote.counter_examples})
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(data, 'model_dump'):
+        return data.model_dump()
+    elif hasattr(data, 'dict'):
+        return data.dict()
+    return data
 
 @require_llm
 def ClozeNoteGenerator(llm, question_with_answer):
@@ -243,6 +271,11 @@ def ClozeNoteGenerator(llm, question_with_answer):
     logger.debug(f"ClozeNoteGenerator raw LLM output: {raw_output}")
     data = fixing_parser.invoke(raw_output)
     logger.debug(f"ClozeNoteGenerator parsed data: {data}")
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(data, 'model_dump'):
+        return data.model_dump()  # Pydantic v2
+    elif hasattr(data, 'dict'):
+        return data.dict()  # Pydantic v1
     return data
 
 @require_llm
@@ -282,4 +315,9 @@ def ListNoteGenerator(llm, question_with_answer):
     logger.debug(f"ListNoteGenerator raw LLM output: {raw_output}")
     data = fixing_parser.invoke(raw_output)
     logger.debug(f"ListNoteGenerator parsed data: {data}")
+    # Convert Pydantic model to dict for JSON serialization
+    if hasattr(data, 'model_dump'):
+        return data.model_dump()  # Pydantic v2
+    elif hasattr(data, 'dict'):
+        return data.dict()  # Pydantic v1
     return data
