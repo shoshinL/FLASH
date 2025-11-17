@@ -6,7 +6,7 @@
 
 import { APIKeyInput } from "../common";
 import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
-import { useProviderKeyStatus } from "../../hooks";
+import { requiresApiKey, hasApiKey } from "../../utils/validation";
 
 interface APIKeySettingsProps {
   // Available providers
@@ -45,21 +45,23 @@ export function APIKeySettings({
       {successMessage && <div className="success-message">{successMessage}</div>}
 
       {availableProviders.map((provider) => {
-        const { needsApiKey, hasKey, maskedKey } = useProviderKeyStatus(provider, apiKeys);
+        const needsApiKey = requiresApiKey(provider);
+        const keySet = hasApiKey(provider, apiKeys);
+        const maskedKey = apiKeys[provider];
 
         return (
           <div key={provider} className="api-key-item">
             <h4>
               {PROVIDER_DISPLAY_NAMES[provider] || provider}
-              <span className={`key-status-badge ${!needsApiKey ? 'not-required' : hasKey ? 'set' : 'not-set'}`}>
-                {!needsApiKey ? 'No API key needed' : hasKey ? 'API Key Set' : 'Not Set'}
+              <span className={`key-status-badge ${!needsApiKey ? 'not-required' : keySet ? 'set' : 'not-set'}`}>
+                {!needsApiKey ? 'No API key needed' : keySet ? 'API Key Set' : 'Not Set'}
               </span>
             </h4>
 
             {needsApiKey ? (
               <APIKeyInput
                 provider={provider}
-                hasKey={hasKey}
+                hasKey={keySet}
                 maskedKey={maskedKey}
                 onSet={(key) => onSetApiKey(provider, key)}
                 onDelete={() => onDeleteApiKey(provider)}
