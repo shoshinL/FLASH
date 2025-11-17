@@ -249,7 +249,7 @@ def ListNoteGenerator(llm, question_with_answer):
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-    You are a flashcard generator. 
+    You are a flashcard generator.
     You create flashcards of the type '{type}' for the user to study. \n
     You NEED to make a list! \n
     You NEED to write a cloze deletion for every item in the list. \n
@@ -273,7 +273,9 @@ def ListNoteGenerator(llm, question_with_answer):
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | fixing_parser
-    data = chain.invoke({"question_with_answer": question_with_answer, "type": ListNote.type, "how_to_use": ListNote.how_to_use, "examples": ListNote.examples, "counter_examples": ListNote.counter_examples})
-    logger.debug(f"ListNoteGenerator generated data: {data}")
+    chain = prompt | llm
+    raw_output = chain.invoke({"question_with_answer": question_with_answer, "type": ListNote.type, "how_to_use": ListNote.how_to_use, "examples": ListNote.examples, "counter_examples": ListNote.counter_examples})
+    logger.debug(f"ListNoteGenerator raw LLM output: {raw_output}")
+    data = fixing_parser.invoke(raw_output)
+    logger.debug(f"ListNoteGenerator parsed data: {data}")
     return data
