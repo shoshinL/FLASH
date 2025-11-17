@@ -33,7 +33,7 @@ class ProviderConfigService:
         self._provider_api_keys = {}
         for provider, encrypted_key in all_keys.items():
             try:
-                decrypted_key = self.crypto_manager.decrypt(encrypted_key).decode()
+                decrypted_key = self.crypto_manager.decrypt(encrypted_key)
                 self._provider_api_keys[provider] = decrypted_key
             except Exception as e:
                 logging.error(f"Failed to decrypt API key for {provider}: {e}")
