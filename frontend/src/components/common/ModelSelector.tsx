@@ -4,7 +4,7 @@
 
 import { groupModels } from "../../utils/modelGrouping";
 import { requiresApiKey, hasApiKey } from "../../utils/validation";
-import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
 import { INFO, OLLAMA_EXAMPLES } from "../../config";
 
 interface ModelSelectorProps {

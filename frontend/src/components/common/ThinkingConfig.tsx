@@ -2,9 +2,8 @@
  * Thinking/Reasoning Configuration Component
  */
 
-import { estimateThinkingCost } from "../../utils/costEstimation";
 import type { ThinkingConfig as ThinkingConfigType } from "../../types/provider";
-import { THINKING, LABELS, TOOLTIPS } from "../../config";
+import { THINKING, LABELS, TOOLTIPS, estimateThinkingCost } from "../../config";
 
 interface ThinkingConfigProps {
   provider: string;

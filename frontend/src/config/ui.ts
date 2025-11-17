@@ -113,3 +113,13 @@ export const COST = {
   /** Number of decimal places for cost display */
   DECIMAL_PLACES: 2,
 } as const;
+
+/**
+ * Estimate the cost of thinking tokens
+ * @param tokens - Number of thinking tokens
+ * @returns Formatted cost string
+ */
+export function estimateThinkingCost(tokens: number): string {
+  const cost = (tokens / 1000000) * COST.PER_MILLION_TOKENS;
+  return cost < COST.MIN_DISPLAY ? `< $${COST.MIN_DISPLAY.toFixed(2)}` : `~$${cost.toFixed(COST.DECIMAL_PLACES)}`;
+}

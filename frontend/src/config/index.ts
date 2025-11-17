@@ -8,3 +8,5 @@
 export * from './ui';
 export * from './messages';
 export * from './ollama';
+export * from './providers';
+export * from './modelGroups';

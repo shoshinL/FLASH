@@ -17,7 +17,7 @@ import {
 import { requiresApiKey, hasApiKey, isProvidersResponse, isEmbeddingConfig } from "../../utils";
 
 // Constants
-import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
 import { ERRORS, SUCCESS, INFO, BUTTONS, TOOLTIPS } from "../../config";
 
 // Types

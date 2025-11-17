@@ -2,7 +2,7 @@
  * Model grouping utilities
  */
 
-import { MODEL_GROUPS, EMBEDDING_MODEL_GROUPS } from '../constants/modelGroups';
+import { MODEL_GROUPS, EMBEDDING_MODEL_GROUPS } from '../config/modelGroups';
 
 export function groupModels(
   provider: string,

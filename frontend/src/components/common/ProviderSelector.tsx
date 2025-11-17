@@ -2,7 +2,7 @@
  * Reusable Provider Selection Component
  */
 
-import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
 import { requiresApiKey, hasApiKey } from "../../utils/validation";
 
 interface ProviderSelectorProps {

@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { isApiKeysStatusResponse } from '../utils/typeGuards';
-import { PROVIDER_DISPLAY_NAMES } from '../constants/providers';
+import { PROVIDER_DISPLAY_NAMES } from '../config/providers';
 import { TIMEOUTS, ERRORS, SUCCESS } from '../config';
 
 export function useApiKeys() {

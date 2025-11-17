@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { validateApiKey } from "../../utils/validation";
-import { PROVIDER_DISPLAY_NAMES } from "../../constants/providers";
+import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
 import { BUTTONS } from "../../config";
 
 interface APIKeyInputProps {
