@@ -9,7 +9,7 @@ from anki.errors import DBError
 
 from settings.settings_manager import SettingsManager
 from settings.settings_context import SettingsContext
-from agents.note_graph import graph
+from agents.flashcard.graph import graph
 
 # Configure logging to show only our app's debug messages, not external libraries
 logging.basicConfig(level=logging.INFO,  # Set root logger to INFO

@@ -3,8 +3,8 @@ from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser
 from langchain.output_parsers import OutputFixingParser
 from pydantic import BaseModel, Field
 
-from .note_models import BasicNote, BasicAndReversedNote, BasicTypeInAnswerNote, ClozeNote, ListNote
-from .parser_utils import create_thinking_aware_parser
+from ..flashcard.models import BasicNote, BasicAndReversedNote, BasicTypeInAnswerNote, ClozeNote, ListNote
+from ..utils.parsers import create_thinking_aware_parser
 
 from settings.api_key_utils import require_llm
 

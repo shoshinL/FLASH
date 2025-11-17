@@ -8,19 +8,14 @@ from langgraph.constants import Send
 from langgraph.graph import END, StateGraph
 import logging
 
-from .process_pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks
-from .retrieval_graph import retrieval_graph
-from .note_agents import QuestionGenerator, QuestionsDeduplicator, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
-from .retrieval_agents import SingleExpertRouter
+from ..utils.pdf import load_pdf, get_retrieval_embeddings, get_question_formulation_chunks
+from ..retrieval.graph import retrieval_graph
+from .agents import QuestionGenerator, QuestionsDeduplicator, BasicNoteGenerator, BasicAndReversedNoteGenerator, BasicTypeInAnswerNoteGenerator, ClozeNoteGenerator, ListNoteGenerator
+from ..retrieval.agents import SingleExpertRouter
+
+from .models import Questions, QuestionWithAnswer
 
 logger = logging.getLogger(__name__)
-
-class Questions(BaseModel):
-    Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")
-
-class QuestionWithAnswer(BaseModel):
-    Question: str = Field(description="A Question to be asked for studying the key points, terms, definitions, facts, context, and content of a document (paper, study notes, lecture slides, ...) very well.")
-    Answer: str = Field(description="The answer to the question with context and explanation.")
 
 class NoteGraphState(TypedDict):
     """

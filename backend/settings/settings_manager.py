@@ -14,6 +14,7 @@ from services.anki_service import AnkiService
 from services.provider_config_service import ProviderConfigService
 from services.embedding_config_service import EmbeddingConfigService
 from services.thinking_service import ThinkingService
+from config.paths import get_flash_db_path
 
 
 class SettingsManager:
@@ -24,7 +25,7 @@ class SettingsManager:
 
     def __init__(self):
         logging.debug("Initializing SettingsManager")
-        self.db_path = self._get_db_path()
+        self.db_path = get_flash_db_path()
         self.repository = SettingsRepository(self.db_path)
         self.crypto_manager = get_crypto_manager()
 
@@ -33,20 +34,6 @@ class SettingsManager:
         self.provider_config_service = ProviderConfigService(self.db_path, self.crypto_manager)
         self.embedding_config_service = EmbeddingConfigService(self.db_path, self.provider_config_service)
         self.thinking_service = ThinkingService(self.db_path)
-
-    def _get_db_path(self):
-        """Get the path to the FLASH settings database."""
-        if sys.platform == 'win32':
-            app_data_dir = os.path.join(os.environ['APPDATA'], 'FLASH for Anki')
-        elif sys.platform == 'darwin':
-            app_data_dir = os.path.join(os.path.expanduser('~/Library/Application Support/'), 'FLASH for Anki')
-        else:
-            app_data_dir = os.path.join(os.path.expanduser('~'), '.FLASH for Anki')
-
-        if not os.path.exists(app_data_dir):
-            os.makedirs(app_data_dir)
-
-        return os.path.join(app_data_dir, 'storage.db')
 
     def get_settings(self) -> Dict[str, Any]:
         """

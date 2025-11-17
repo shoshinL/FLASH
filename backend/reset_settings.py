@@ -26,24 +26,18 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
+# Add backend directory to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from config.paths import get_flash_db_path
+
 
 class SettingsReset:
     """Utility to reset FLASH settings database."""
 
     def __init__(self):
-        self.db_path = self._get_db_path()
+        self.db_path = get_flash_db_path()
         self.backup_path = None
-
-    def _get_db_path(self) -> str:
-        """Get the path to the FLASH settings database."""
-        if sys.platform == 'win32':
-            app_data_dir = os.path.join(os.environ['APPDATA'], 'FLASH for Anki')
-        elif sys.platform == 'darwin':
-            app_data_dir = os.path.join(os.path.expanduser('~/Library/Application Support/'), 'FLASH for Anki')
-        else:
-            app_data_dir = os.path.join(os.path.expanduser('~'), '.FLASH for Anki')
-
-        return os.path.join(app_data_dir, 'storage.db')
 
     def backup_database(self) -> str:
         """

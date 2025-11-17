@@ -1,6 +1,15 @@
 from typing import List, Type
 from pydantic import BaseModel, Field
 
+# Shared question models used across agents and graph
+class Questions(BaseModel):
+    Questions: List[str] = Field(description="A List of questions to be asked for studying the key points, terms, definitions, facts, context, and content of the provided document (paper, study notes, lecture slides, ...) very well.")
+
+class QuestionWithAnswer(BaseModel):
+    Question: str = Field(description="A Question to be asked for studying the key points, terms, definitions, facts, context, and content of a document (paper, study notes, lecture slides, ...) very well.")
+    Answer: str = Field(description="The answer to the question with context and explanation.")
+
+# Flashcard type models
 class BasicModel(BaseModel):
     Type: str = Field(description="The type of the flashcard. Should be 'Basic'.")
     Front: str = Field(description="The front of the flashcard.")
