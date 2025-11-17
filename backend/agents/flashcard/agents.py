@@ -238,8 +238,11 @@ def ClozeNoteGenerator(llm, question_with_answer):
     input_variables=["type", "question_with_answer", "how_to_use", "examples", "counter_examples"],
     partial_variables={"format_instructions": format_instructions},
     )
-    chain = prompt | llm | fixing_parser
-    data = chain.invoke({"question_with_answer": question_with_answer, "type": ClozeNote.type, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
+    chain = prompt | llm
+    raw_output = chain.invoke({"question_with_answer": question_with_answer, "type": ClozeNote.type, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
+    logger.debug(f"ClozeNoteGenerator raw LLM output: {raw_output}")
+    data = fixing_parser.invoke(raw_output)
+    logger.debug(f"ClozeNoteGenerator parsed data: {data}")
     return data
 
 @require_llm
@@ -247,6 +250,7 @@ def ListNoteGenerator(llm, question_with_answer):
     parser = JsonOutputParser(pydantic_object=ClozeModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
+    logger.debug(f"ListNoteGenerator format instructions: {format_instructions}")
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator.
