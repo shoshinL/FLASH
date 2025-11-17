@@ -48,7 +48,7 @@ class ProviderConfigService:
             provider: Provider name (e.g., 'openai', 'anthropic', 'ollama')
             api_key: API key to store
         """
-        encrypted_key = self.crypto_manager.encrypt(api_key.strip().encode())
+        encrypted_key = self.crypto_manager.encrypt(api_key.strip())
         self.repository.upsert_provider_api_key(provider, encrypted_key)
 
         # Update cache
