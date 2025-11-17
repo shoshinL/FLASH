@@ -1,24 +1,26 @@
+/**
+ * Provider Settings Router Component
+ *
+ * Routes between LLM, Embedding, and API Key settings based on mode.
+ */
+
 import { useState, useEffect } from "react";
 import "./ProviderSettings.css";
 
 // Custom hooks
-import { useProviderConfig, useApiKeys, useModels, useThinkingConfig, useProviderKeyStatus } from "../../hooks";
+import { useProviderConfig, useApiKeys, useModels, useThinkingConfig } from "../../hooks";
 
-// Reusable components
-import {
-  ProviderSelector,
-  ModelSelector,
-  APIKeyInput,
-  ThinkingConfig,
-  SettingsLoadingSkeleton
-} from "../common";
+// Sub-components
+import { LLMSettings } from "./LLMSettings";
+import { EmbeddingSettings } from "./EmbeddingSettings";
+import { APIKeySettings } from "./APIKeySettings";
+import { SettingsLoadingSkeleton } from "../common";
 
 // Utilities
 import { isProvidersResponse, isEmbeddingConfig } from "../../utils";
 
 // Constants
-import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
-import { ERRORS, SUCCESS, INFO, BUTTONS, TOOLTIPS } from "../../config";
+import { ERRORS, SUCCESS } from "../../config";
 
 // Types
 import type { ProviderMode } from "../../types/provider";
@@ -34,17 +36,12 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
   const llmModels = useModels();
   const thinkingConfig = useThinkingConfig();
 
-  // Embedding-specific state needs to be declared first
-  const [currentEmbeddingProvider, setCurrentEmbeddingProvider] = useState<string>("openai");
-
-  // Provider key status for embedding provider
-  const embeddingKeyStatus = useProviderKeyStatus(currentEmbeddingProvider, apiKeysManager.apiKeys);
-
   // === Local State ===
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
 
   // Embedding-specific state
   const [embeddingProviders, setEmbeddingProviders] = useState<string[]>([]);
+  const [currentEmbeddingProvider, setCurrentEmbeddingProvider] = useState<string>("openai");
   const [currentEmbeddingModel, setCurrentEmbeddingModel] = useState<string | null>(null);
   const embeddingModels = useModels();
   const [embeddingError, setEmbeddingError] = useState<string | null>(null);
@@ -181,156 +178,66 @@ export function ProviderSettings({ mode }: ProviderSettingsProps) {
     }
   };
 
+  const handleApplyLLM = async () => {
+    await llmConfig.updateProviderConfig(llmConfig.currentProvider, llmConfig.currentModel);
+  };
+
   // === Loading State ===
   if (llmConfig.loading || apiKeysManager.loading) {
     return <SettingsLoadingSkeleton />;
   }
 
-  // === Render LLM Configuration ===
+  // === Route to Appropriate Component ===
   if (mode === "llm") {
     return (
-      <div className="provider-settings-container">
-        <h3>Language Model</h3>
-
-        {llmConfig.error && <div className="error-message">{llmConfig.error}</div>}
-        {llmConfig.successMessage && <div className="success-message">{llmConfig.successMessage}</div>}
-
-        <ProviderSelector
-          label="Provider"
-          value={llmConfig.currentProvider}
-          providers={availableProviders}
-          apiKeys={apiKeysManager.apiKeys}
-          onChange={handleProviderChange}
-          tooltip={TOOLTIPS.LLM_PROVIDER}
-        />
-
-        <ModelSelector
-          label="Model"
-          provider={llmConfig.currentProvider}
-          models={llmModels.models}
-          selectedModel={llmConfig.currentModel}
-          loading={llmModels.loading}
-          apiKeys={apiKeysManager.apiKeys}
-          onChange={handleModelChange}
-          tooltip={TOOLTIPS.MODEL_SELECT}
-        />
-
-        {thinkingConfig.supportsThinking && (
-          <ThinkingConfig
-            provider={llmConfig.currentProvider}
-            enabled={thinkingConfig.enabled}
-            budgetTokens={thinkingConfig.budgetTokens}
-            effort={thinkingConfig.effort}
-            onUpdate={thinkingConfig.updateThinkingConfig}
-          />
-        )}
-
-        <div className="settings-item apply-button-container">
-          <button
-            onClick={() => llmConfig.updateProviderConfig(llmConfig.currentProvider, llmConfig.currentModel)}
-            className="apply-button"
-            disabled={!llmConfig.currentModel}
-          >
-            {BUTTONS.SAVE_CONFIGURATION}
-          </button>
-        </div>
-      </div>
+      <LLMSettings
+        currentProvider={llmConfig.currentProvider}
+        currentModel={llmConfig.currentModel}
+        availableProviders={availableProviders}
+        models={llmModels.models}
+        modelsLoading={llmModels.loading}
+        supportsThinking={thinkingConfig.supportsThinking}
+        thinkingEnabled={thinkingConfig.enabled}
+        thinkingBudgetTokens={thinkingConfig.budgetTokens}
+        thinkingEffort={thinkingConfig.effort}
+        apiKeys={apiKeysManager.apiKeys}
+        error={llmConfig.error}
+        successMessage={llmConfig.successMessage}
+        onProviderChange={handleProviderChange}
+        onModelChange={handleModelChange}
+        onUpdateThinkingConfig={thinkingConfig.updateThinkingConfig}
+        onApply={handleApplyLLM}
+      />
     );
   }
 
-  // === Render API Keys Management ===
   if (mode === "api_keys") {
     return (
-      <div className="api-keys-container">
-        <h3>API Key Management</h3>
-        <p className="api-keys-description">
-          Manage your API keys for different providers. API keys are stored securely and required
-          for providers like OpenAI, Anthropic, Google, and OpenRouter. Ollama runs locally and
-          doesn't require an API key.
-        </p>
-
-        {apiKeysManager.error && <div className="error-message">{apiKeysManager.error}</div>}
-        {apiKeysManager.successMessage && <div className="success-message">{apiKeysManager.successMessage}</div>}
-
-        {availableProviders.map((provider) => {
-          const { needsApiKey, hasKey, maskedKey } = useProviderKeyStatus(provider, apiKeysManager.apiKeys);
-
-          return (
-            <div key={provider} className="api-key-item">
-              <h4>
-                {PROVIDER_DISPLAY_NAMES[provider] || provider}
-                <span className={`key-status-badge ${!needsApiKey ? 'not-required' : hasKey ? 'set' : 'not-set'}`}>
-                  {!needsApiKey ? 'No API key needed' : hasKey ? 'API Key Set' : 'Not Set'}
-                </span>
-              </h4>
-
-              {needsApiKey ? (
-                <APIKeyInput
-                  provider={provider}
-                  hasKey={hasKey}
-                  maskedKey={maskedKey}
-                  onSet={(key) => handleSetApiKey(provider, key)}
-                  onDelete={() => handleDeleteApiKey(provider)}
-                  showStatus={true}
-                />
-              ) : (
-                <p style={{ color: '#666', fontSize: '14px', margin: '5px 0 0 0' }}>
-                  This provider runs locally and doesn't require an API key.
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <APIKeySettings
+        availableProviders={availableProviders}
+        apiKeys={apiKeysManager.apiKeys}
+        error={apiKeysManager.error}
+        successMessage={apiKeysManager.successMessage}
+        onSetApiKey={handleSetApiKey}
+        onDeleteApiKey={handleDeleteApiKey}
+      />
     );
   }
 
-  // === Render Embedding Model Settings ===
+  // Default: Embedding settings
   return (
-    <div className="provider-settings-container">
-      <div className="embedding-settings-section">
-        <h3>Embedding Model</h3>
-
-        {embeddingError && <div className="error-message">{embeddingError}</div>}
-        {embeddingSuccessMessage && <div className="success-message">{embeddingSuccessMessage}</div>}
-
-        <ProviderSelector
-          label="Provider"
-          value={currentEmbeddingProvider}
-          providers={embeddingProviders}
-          apiKeys={apiKeysManager.apiKeys}
-          onChange={handleEmbeddingProviderChange}
-          tooltip={TOOLTIPS.EMBEDDING_PROVIDER}
-        />
-
-        {embeddingKeyStatus.needsApiKey && !embeddingKeyStatus.hasKey && (
-          <div className="warning-message">
-            {INFO.API_KEY_REQUIRED_TAB(PROVIDER_DISPLAY_NAMES[currentEmbeddingProvider])}
-          </div>
-        )}
-
-        <ModelSelector
-          label="Model"
-          provider={currentEmbeddingProvider}
-          models={embeddingModels.models}
-          selectedModel={currentEmbeddingModel}
-          loading={embeddingModels.loading}
-          isEmbedding={true}
-          apiKeys={apiKeysManager.apiKeys}
-          onChange={handleEmbeddingModelChange}
-          tooltip={TOOLTIPS.EMBEDDING_MODEL_SELECT}
-        />
-
-        <div className="settings-item apply-button-container">
-          <button
-            onClick={handleApplyEmbedding}
-            className="apply-button"
-            disabled={!currentEmbeddingModel}
-          >
-            {BUTTONS.SAVE_CONFIGURATION}
-          </button>
-        </div>
-      </div>
-    </div>
+    <EmbeddingSettings
+      currentProvider={currentEmbeddingProvider}
+      currentModel={currentEmbeddingModel}
+      embeddingProviders={embeddingProviders}
+      models={embeddingModels.models}
+      modelsLoading={embeddingModels.loading}
+      apiKeys={apiKeysManager.apiKeys}
+      error={embeddingError}
+      successMessage={embeddingSuccessMessage}
+      onProviderChange={handleEmbeddingProviderChange}
+      onModelChange={handleEmbeddingModelChange}
+      onApply={handleApplyEmbedding}
+    />
   );
 }

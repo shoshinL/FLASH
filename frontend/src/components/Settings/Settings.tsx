@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./Settings.css";
 import { ProviderSettings } from "./ProviderSettings";
+import { AnkiSettings } from "./AnkiSettings";
 import type { Settings, ProfilesResponse, DecksResponse, AnkiPathResponse } from "../../types/settings";
 import { isSettings, isProfilesResponse, isDecksResponse, isAnkiPathResponse } from "../../utils/typeGuards";
 
@@ -170,45 +171,17 @@ export function Settings() {
       ) : activeTab === "api_keys" ? (
         <ProviderSettings mode="api_keys" />
       ) : (
-        <div className="anki-settings">
-          {error && <div className="error-message">{error}</div>}
-          <div className="settings-item">
-            <label>Anki Database File: </label>
-            <input
-              type="text"
-              className="file-path-input"
-              value={settings.anki_db_path}
-              readOnly
-              onClick={handleSelectAnkiPath}
-            />
-          </div>
-          <div className="settings-item">
-            <label>Anki Profile: </label>
-            <select
-              value={settings.profile}
-              onChange={(e) => handleProfileChange(e.target.value)}
-            >
-              {profiles.map((profile) => (
-                <option key={profile} value={profile}>
-                  {profile}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="settings-item">
-            <label>Anki Deck: </label>
-            <select
-              value={settings.deck_name}
-              onChange={(e) => handleDeckChange(e.target.value)}
-            >
-              {Object.entries(decks).map(([name, id]) => (
-                <option key={id} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <AnkiSettings
+          ankiDbPath={settings.anki_db_path}
+          profile={settings.profile}
+          deckName={settings.deck_name}
+          profiles={profiles}
+          decks={decks}
+          error={error}
+          onSelectAnkiPath={handleSelectAnkiPath}
+          onProfileChange={handleProfileChange}
+          onDeckChange={handleDeckChange}
+        />
       )}
     </div>
   );
