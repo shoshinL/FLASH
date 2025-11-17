@@ -29,11 +29,11 @@ class SettingsManager:
         self.repository = SettingsRepository(self.db_path)
         self.crypto_manager = get_crypto_manager()
 
-        # Initialize specialized services
-        self.anki_service = AnkiService(self.db_path)
-        self.provider_config_service = ProviderConfigService(self.db_path, self.crypto_manager)
-        self.embedding_config_service = EmbeddingConfigService(self.db_path, self.provider_config_service)
-        self.thinking_service = ThinkingService(self.db_path)
+        # Initialize specialized services (using repository pattern)
+        self.anki_service = AnkiService(self.repository)
+        self.provider_config_service = ProviderConfigService(self.repository, self.crypto_manager)
+        self.embedding_config_service = EmbeddingConfigService(self.repository, self.provider_config_service)
+        self.thinking_service = ThinkingService(self.repository)
 
     def get_settings(self) -> Dict[str, Any]:
         """

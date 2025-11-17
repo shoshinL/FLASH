@@ -1,11 +1,10 @@
 """
 Anki Service - Handles all Anki-related operations.
-Extracted from SettingsManager for better separation of concerns.
+Uses repository pattern for database operations.
 """
 
 import os
 import sys
-import sqlite3
 import logging
 from typing import Dict, List, Any, Optional
 
@@ -17,14 +16,14 @@ from anki_utils.db_access import get_profiles, get_sync_auth
 class AnkiService:
     """Service for managing Anki profiles, decks, and collection operations."""
 
-    def __init__(self, db_path: str):
+    def __init__(self, repository):
         """
         Initialize AnkiService.
 
         Args:
-            db_path: Path to the FLASH settings database
+            repository: SettingsRepository instance for database operations
         """
-        self.db_path = db_path
+        self.repository = repository
         self.anki_db_path = ""
         self.profile = ""
         self.deck_name = ""
@@ -148,13 +147,7 @@ class AnkiService:
             Dictionary with Anki configuration
         """
         logging.debug(f"Upserting Anki DB path: {path}")
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-        INSERT OR REPLACE INTO settings (key, value) VALUES ('anki_db_path', ?)
-        ''', (path,))
-        conn.commit()
-        conn.close()
+        self.repository.upsert_setting('anki_db_path', path)
 
         self.anki_db_path = path
 
@@ -202,13 +195,7 @@ class AnkiService:
         Returns:
             Dictionary with profile and deck configuration
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-        INSERT OR REPLACE INTO settings (key, value) VALUES ('profile', ?)
-        ''', (profile,))
-        conn.commit()
-        conn.close()
+        self.repository.upsert_setting('profile', profile)
 
         self.profile = profile
 
@@ -233,13 +220,7 @@ class AnkiService:
         Args:
             deck_name: Deck name
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-        INSERT OR REPLACE INTO settings (key, value) VALUES ('deck_name', ?)
-        ''', (deck_name,))
-        conn.commit()
-        conn.close()
+        self.repository.upsert_setting('deck_name', deck_name)
         self.deck_name = deck_name
 
     def add_generated_cards_to_deck(self, filename: str, notes: List[Dict[str, str]]) -> None:
@@ -293,57 +274,27 @@ class AnkiService:
 
     def _anki_db_path_exists(self) -> bool:
         """Check if anki_db_path is stored in settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'anki_db_path';")
-        path_exists = cursor.fetchone()
-        conn.close()
-        return path_exists is not None
+        return self.repository.get_setting('anki_db_path') is not None
 
     def _profile_exists(self) -> bool:
         """Check if profile is stored in settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'profile';")
-        profile_exists = cursor.fetchone()
-        conn.close()
-        return profile_exists is not None
+        return self.repository.get_setting('profile') is not None
 
     def _deck_name_exists(self) -> bool:
         """Check if deck_name is stored in settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'deck_name';")
-        deck_name_exists = cursor.fetchone()
-        conn.close()
-        return deck_name_exists is not None
+        return self.repository.get_setting('deck_name') is not None
 
     def _get_anki_db_path(self) -> str:
         """Get anki_db_path from settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'anki_db_path';")
-        path = cursor.fetchone()
-        conn.close()
-        return path[0] if path else ""
+        return self.repository.get_setting('anki_db_path') or ""
 
     def _get_profile(self) -> str:
         """Get profile from settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'profile';")
-        profile = cursor.fetchone()
-        conn.close()
-        return profile[0] if profile else ""
+        return self.repository.get_setting('profile') or ""
 
     def _get_deck_name(self) -> str:
         """Get deck_name from settings."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT value FROM settings WHERE key = 'deck_name';")
-        deck_name = cursor.fetchone()
-        conn.close()
-        return deck_name[0] if deck_name else ""
+        return self.repository.get_setting('deck_name') or ""
 
     def _is_anki_db_path_valid(self) -> bool:
         """Validate that anki_db_path exists and is valid."""

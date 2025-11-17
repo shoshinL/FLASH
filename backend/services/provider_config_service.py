@@ -1,9 +1,8 @@
 """
 Provider Configuration Service - Handles LLM provider management.
-Extracted from SettingsManager for better separation of concerns.
+Uses repository pattern for database operations.
 """
 
-import sqlite3
 import logging
 from typing import Dict, Any, Optional
 
@@ -13,15 +12,15 @@ from security.crypto_manager import CryptoManager
 class ProviderConfigService:
     """Service for managing LLM provider configurations and API keys."""
 
-    def __init__(self, db_path: str, crypto_manager: CryptoManager):
+    def __init__(self, repository, crypto_manager: CryptoManager):
         """
         Initialize ProviderConfigService.
 
         Args:
-            db_path: Path to the FLASH settings database
+            repository: SettingsRepository instance for database operations
             crypto_manager: CryptoManager instance for encryption/decryption
         """
-        self.db_path = db_path
+        self.repository = repository
         self.crypto_manager = crypto_manager
         self._provider_api_keys = {}  # Cache for provider API keys
         self._load_provider_api_keys()
@@ -29,14 +28,10 @@ class ProviderConfigService:
     def _load_provider_api_keys(self) -> None:
         """Load all provider API keys from database into memory."""
         logging.debug("Loading provider API keys")
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT provider, encrypted_key FROM provider_api_keys;")
-        rows = cursor.fetchall()
-        conn.close()
+        all_keys = self.repository.get_all_provider_api_keys()
 
         self._provider_api_keys = {}
-        for provider, encrypted_key in rows:
+        for provider, encrypted_key in all_keys.items():
             try:
                 decrypted_key = self.crypto_manager.decrypt(encrypted_key).decode()
                 self._provider_api_keys[provider] = decrypted_key
@@ -54,14 +49,7 @@ class ProviderConfigService:
             api_key: API key to store
         """
         encrypted_key = self.crypto_manager.encrypt(api_key.strip().encode())
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO provider_api_keys (provider, encrypted_key)
-            VALUES (?, ?)
-        ''', (provider, encrypted_key))
-        conn.commit()
-        conn.close()
+        self.repository.upsert_provider_api_key(provider, encrypted_key)
 
         # Update cache
         self._provider_api_keys[provider] = api_key.strip()
@@ -86,11 +74,7 @@ class ProviderConfigService:
         Args:
             provider: Provider name
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM provider_api_keys WHERE provider = ?', (provider,))
-        conn.commit()
-        conn.close()
+        self.repository.delete_provider_api_key(provider)
 
         # Update cache
         if provider in self._provider_api_keys:
@@ -115,19 +99,11 @@ class ProviderConfigService:
             provider: Provider name
             model: Model name (optional)
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO settings (key, value) VALUES ('current_provider', ?)
-        ''', (provider,))
+        self.repository.upsert_setting('current_provider', provider)
 
         if model:
-            cursor.execute('''
-                INSERT OR REPLACE INTO settings (key, value) VALUES ('current_model', ?)
-            ''', (model,))
+            self.repository.upsert_setting('current_model', model)
 
-        conn.commit()
-        conn.close()
         logging.debug(f"Provider config set: {provider}, model: {model}")
 
     def get_provider_config(self) -> Dict[str, Any]:
@@ -137,20 +113,13 @@ class ProviderConfigService:
         Returns:
             Dictionary with provider, model, and api_key
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
         # Get current provider
-        cursor.execute("SELECT value FROM settings WHERE key = 'current_provider';")
-        provider_row = cursor.fetchone()
-        provider = provider_row[0] if provider_row else 'openai'  # Default to OpenAI
+        provider = self.repository.get_setting('current_provider')
+        if not provider:
+            provider = 'openai'  # Default to OpenAI
 
         # Get current model
-        cursor.execute("SELECT value FROM settings WHERE key = 'current_model';")
-        model_row = cursor.fetchone()
-        model = model_row[0] if model_row else None
-
-        conn.close()
+        model = self.repository.get_setting('current_model')
 
         # Get API key for the current provider
         api_key = self.get_provider_api_key(provider)

@@ -1,9 +1,8 @@
 """
 Thinking Service - Handles extended thinking/reasoning configuration.
-Refactored to be consistent with other services (instance-based, direct DB access).
+Uses repository pattern for database operations.
 """
 
-import sqlite3
 import json
 import logging
 from typing import Dict, Any
@@ -22,14 +21,14 @@ class ThinkingService:
         'google': ['gemini-2.0-flash-thinking-exp']
     }
 
-    def __init__(self, db_path: str):
+    def __init__(self, repository):
         """
         Initialize ThinkingService.
 
         Args:
-            db_path: Path to the FLASH settings database
+            repository: SettingsRepository instance for database operations
         """
-        self.db_path = db_path
+        self.repository = repository
 
     def get_thinking_config(self) -> Dict[str, Any]:
         """
@@ -39,15 +38,11 @@ class ThinkingService:
             Dictionary with thinking configuration
         """
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("SELECT value FROM settings WHERE key = 'thinking_config';")
-            config_row = cursor.fetchone()
-            conn.close()
+            config_json = self.repository.get_setting('thinking_config')
 
-            if config_row:
+            if config_json:
                 try:
-                    return json.loads(config_row[0])
+                    return json.loads(config_json)
                 except json.JSONDecodeError:
                     logger.error("Failed to parse thinking config JSON")
                     return self._default_thinking_config()
@@ -69,13 +64,7 @@ class ThinkingService:
             full_config = self._default_thinking_config()
             full_config.update(config)
 
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO settings (key, value) VALUES ('thinking_config', ?)
-            ''', (json.dumps(full_config),))
-            conn.commit()
-            conn.close()
+            self.repository.upsert_setting('thinking_config', json.dumps(full_config))
             logger.debug(f"Thinking config set: {full_config}")
         except Exception as e:
             logger.error(f"Error setting thinking config: {e}")
