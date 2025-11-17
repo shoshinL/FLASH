@@ -63,6 +63,27 @@ class GoogleProvider(LLMProvider):
 
     def get_available_models(self) -> List[str]:
         """Get available Google models."""
+        # If we have an API key, try to fetch models from API
+        if self.api_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                models = genai.list_models()
+                # Filter for chat/generation models (generateContent capability)
+                model_ids = [
+                    model.name.replace('models/', '')
+                    for model in models
+                    if 'generateContent' in model.supported_generation_methods
+                ]
+                if model_ids:
+                    # Sort with popular models first, then alphabetically
+                    popular = [m for m in self.POPULAR_MODELS if m in model_ids]
+                    other = sorted([m for m in model_ids if m not in self.POPULAR_MODELS])
+                    return popular + other
+            except Exception as e:
+                logging.warning(f"Failed to fetch Google models from API: {e}")
+
+        # Fallback to curated list
         return self.POPULAR_MODELS
 
     def get_available_embedding_models(self) -> List[str]:
