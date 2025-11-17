@@ -240,8 +240,6 @@ def ClozeNoteGenerator(llm, question_with_answer):
     )
     chain = prompt | llm | fixing_parser
     data = chain.invoke({"question_with_answer": question_with_answer, "type": ClozeNote.type, "how_to_use": ClozeNote.how_to_use, "examples": ClozeNote.examples, "counter_examples": ClozeNote.counter_examples})
-    if "BackExtra" in data:
-        data["Back Extra"] = data.pop("BackExtra")
     return data
 
 @require_llm
@@ -277,6 +275,4 @@ def ListNoteGenerator(llm, question_with_answer):
     )
     chain = prompt | llm | fixing_parser
     data = chain.invoke({"question_with_answer": question_with_answer, "type": ListNote.type, "how_to_use": ListNote.how_to_use, "examples": ListNote.examples, "counter_examples": ListNote.counter_examples})
-    if "BackExtra" in data:
-        data["Back Extra"] = data.pop("BackExtra")
     return data

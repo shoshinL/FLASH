@@ -36,6 +36,11 @@ class AnkiCollectionManager:
         model = self._get_model(id)
         note = Note(self.col, model)
 
+        # Rename BackExtra to "Back Extra" for Anki compatibility
+        # (Anki uses "Back Extra" with space, but our models use "BackExtra" without space)
+        if "BackExtra" in generated_note:
+            generated_note["Back Extra"] = generated_note.pop("BackExtra")
+
         fields = self._get_model_fields(model)
 
         #validate that the generated note matches the model
