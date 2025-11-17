@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./Settings.css";
 import { ProviderSettings } from "./ProviderSettings";
 import { AnkiSettings } from "./AnkiSettings";
-import type { Settings, ProfilesResponse, DecksResponse, AnkiPathResponse } from "../../types/settings";
+import type { Settings } from "../../types/settings";
 import { isSettings, isProfilesResponse, isDecksResponse, isAnkiPathResponse } from "../../utils/typeGuards";
 
 
