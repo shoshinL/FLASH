@@ -36,12 +36,12 @@ class Api:
     """Main API class that delegates to specialized API modules."""
 
     def __init__(self):
-        # Initialize specialized API modules
-        self.anki_api = AnkiAPI()
-        self.provider_api = ProviderAPI()
-        self.embedding_api = EmbeddingAPI()
-        self.thinking_api = ThinkingAPI()
-        self.flashcard_api = FlashcardAPI()
+        # Initialize specialized API modules (private to prevent webview introspection)
+        self._anki_api = AnkiAPI()
+        self._provider_api = ProviderAPI()
+        self._embedding_api = EmbeddingAPI()
+        self._thinking_api = ThinkingAPI()
+        self._flashcard_api = FlashcardAPI()
     # ========== Window-specific utility methods ==========
 
     def show_alert(self, message):
@@ -64,115 +64,115 @@ class Api:
 
     def generate_flashcards(self, content, file_path, card_amount):
         """Generate flashcards from content."""
-        return self.flashcard_api.generate_flashcards(content, file_path, card_amount)
+        return self._flashcard_api.generate_flashcards(content, file_path, card_amount)
 
     def save_accepted_flashcards(self, flashcards, filename):
         """Save accepted flashcards to Anki deck."""
-        return self.flashcard_api.save_accepted_flashcards(flashcards, filename)
+        return self._flashcard_api.save_accepted_flashcards(flashcards, filename)
 
     # ========== Anki API Endpoints (delegate to AnkiAPI) ==========
 
     def get_settings(self):
         """Get all application settings."""
-        return self.anki_api.get_settings()
+        return self._anki_api.get_settings()
 
     def get_profiles(self, anki_db_path):
         """Get all available Anki profiles."""
-        return self.anki_api.get_profiles(anki_db_path)
+        return self._anki_api.get_profiles(anki_db_path)
 
     def get_decks(self, profile):
         """Get all decks for a profile."""
-        return self.anki_api.get_decks(profile)
+        return self._anki_api.get_decks(profile)
 
     def get_selected_deck(self):
         """Get currently selected deck."""
-        return self.anki_api.get_selected_deck()
+        return self._anki_api.get_selected_deck()
 
     def get_selected_profile(self):
         """Get currently selected profile."""
-        return self.anki_api.get_selected_profile()
+        return self._anki_api.get_selected_profile()
 
     def select_file_path(self):
         """Select Anki database file."""
-        return self.anki_api.select_file_path()
+        return self._anki_api.select_file_path()
 
     def set_profile(self, profile):
         """Set active Anki profile."""
-        return self.anki_api.set_profile(profile)
+        return self._anki_api.set_profile(profile)
 
     def set_deck(self, deck_name):
         """Set active deck."""
-        return self.anki_api.set_deck(deck_name)
+        return self._anki_api.set_deck(deck_name)
 
     # ========== Provider API Endpoints (delegate to ProviderAPI) ==========
 
     def get_available_providers(self):
         """Get list of all available LLM providers."""
-        return self.provider_api.get_available_providers()
+        return self._provider_api.get_available_providers()
 
     def get_provider_config(self):
         """Get current provider configuration."""
-        return self.provider_api.get_provider_config()
+        return self._provider_api.get_provider_config()
 
     def get_available_models(self, provider):
         """Get available models for a specific provider."""
-        return self.provider_api.get_available_models(provider)
+        return self._provider_api.get_available_models(provider)
 
     def set_provider_api_key(self, provider, api_key):
         """Set API key for a specific provider."""
-        return self.provider_api.set_provider_api_key(provider, api_key)
+        return self._provider_api.set_provider_api_key(provider, api_key)
 
     def delete_provider_api_key(self, provider):
         """Delete API key for a specific provider."""
-        return self.provider_api.delete_provider_api_key(provider)
+        return self._provider_api.delete_provider_api_key(provider)
 
     def get_provider_api_keys_status(self):
         """Get status of which providers have API keys set."""
-        return self.provider_api.get_provider_api_keys_status()
+        return self._provider_api.get_provider_api_keys_status()
 
     def set_provider_config(self, provider, model=None):
         """Set the current provider and model."""
-        return self.provider_api.set_provider_config(provider, model)
+        return self._provider_api.set_provider_config(provider, model)
 
     def validate_provider(self, provider, api_key=None, model=None):
         """Validate a provider configuration."""
-        return self.provider_api.validate_provider(provider, api_key, model)
+        return self._provider_api.validate_provider(provider, api_key, model)
 
     def set_api_key(self, api_key):
         """Legacy method: Set API key for OpenAI."""
-        return self.provider_api.set_api_key(api_key)
+        return self._provider_api.set_api_key(api_key)
 
     # ========== Embedding API Endpoints (delegate to EmbeddingAPI) ==========
 
     def get_embedding_providers(self):
         """Get list of providers that support embeddings."""
-        return self.embedding_api.get_embedding_providers()
+        return self._embedding_api.get_embedding_providers()
 
     def get_embedding_config(self):
         """Get current embedding configuration."""
-        return self.embedding_api.get_embedding_config()
+        return self._embedding_api.get_embedding_config()
 
     def get_available_embedding_models(self, provider):
         """Get available embedding models for a specific provider."""
-        return self.embedding_api.get_available_embedding_models(provider)
+        return self._embedding_api.get_available_embedding_models(provider)
 
     def set_embedding_config(self, provider, model=None):
         """Set the embedding provider and model."""
-        return self.embedding_api.set_embedding_config(provider, model)
+        return self._embedding_api.set_embedding_config(provider, model)
 
     # ========== Thinking API Endpoints (delegate to ThinkingAPI) ==========
 
     def get_thinking_config(self):
         """Get thinking/reasoning configuration."""
-        return self.thinking_api.get_thinking_config()
+        return self._thinking_api.get_thinking_config()
 
     def set_thinking_config(self, config):
         """Set thinking/reasoning configuration."""
-        return self.thinking_api.set_thinking_config(config)
+        return self._thinking_api.set_thinking_config(config)
 
     def check_thinking_support(self, provider, model):
         """Check if a provider/model supports thinking/reasoning."""
-        return self.thinking_api.check_thinking_support(provider, model)
+        return self._thinking_api.check_thinking_support(provider, model)
 
 
 def get_entrypoint():
