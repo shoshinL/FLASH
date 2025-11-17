@@ -209,7 +209,7 @@ def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
 
 @require_llm
 def ClozeNoteGenerator(llm, question_with_answer):
-    parser = JsonOutputParser(pydantic_object=ClozeModel)
+    parser = PydanticOutputParser(pydantic_object=ClozeModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     prompt = PromptTemplate(
@@ -247,7 +247,7 @@ def ClozeNoteGenerator(llm, question_with_answer):
 
 @require_llm
 def ListNoteGenerator(llm, question_with_answer):
-    parser = JsonOutputParser(pydantic_object=ClozeModel)
+    parser = PydanticOutputParser(pydantic_object=ClozeModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
     format_instructions = parser.get_format_instructions()
     logger.debug(f"ListNoteGenerator format instructions: {format_instructions}")
