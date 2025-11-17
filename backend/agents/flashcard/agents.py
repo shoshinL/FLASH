@@ -24,6 +24,51 @@ from settings.api_key_utils import require_llm
 
 logger = logging.getLogger(__name__)
 
+def get_simple_format_instructions(model_class):
+    """
+    Generate simple, example-based format instructions for flashcard models.
+    More suitable for smaller LLMs than abstract JSON schemas.
+    """
+    if model_class == ClozeModel:
+        return """Return ONLY a JSON object with these exact fields:
+{
+    "Type": "Cloze",
+    "Text": "Your text with {{c1::cloze}} deletions",
+    "BackExtra": "Additional context (optional)"
+}
+
+Do NOT return a schema definition. Return actual flashcard data."""
+    elif model_class == BasicModel:
+        return """Return ONLY a JSON object with these exact fields:
+{
+    "Type": "Basic",
+    "Front": "Your question or prompt",
+    "Back": "Your answer"
+}
+
+Do NOT return a schema definition. Return actual flashcard data."""
+    elif model_class == BasicAndReversedModel:
+        return """Return ONLY a JSON object with these exact fields:
+{
+    "Type": "Basic (and reversed card)",
+    "Front": "Your front/back content",
+    "Back": "Your back/front content"
+}
+
+Do NOT return a schema definition. Return actual flashcard data."""
+    elif model_class == BasicTypeInAnswerModel:
+        return """Return ONLY a JSON object with these exact fields:
+{
+    "Type": "Basic (type in the answer)",
+    "Front": "Your question",
+    "Back": "Short answer to type"
+}
+
+Do NOT return a schema definition. Return actual flashcard data."""
+    else:
+        # Fallback to Pydantic's default
+        return PydanticOutputParser(pydantic_object=model_class).get_format_instructions()
+
 @require_llm
 def QuestionGenerator(llm, questioning_chunk, n_questions, questioning_context, generated_questions):
     logger.debug("Starting QuestionGenerator")
@@ -122,8 +167,8 @@ def QuestionsDeduplicator(llm, questions, n_questions):
 @require_llm
 def BasicNoteGenerator(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=BasicModel)
-    fixing_parser = create_thinking_aware_parser(parser, llm)    
-    format_instructions = parser.get_format_instructions()
+    fixing_parser = create_thinking_aware_parser(parser, llm)
+    format_instructions = get_simple_format_instructions(BasicModel)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator. 
@@ -161,7 +206,7 @@ def BasicNoteGenerator(llm, question_with_answer):
 def BasicAndReversedNoteGenerator(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=BasicAndReversedModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
-    format_instructions = parser.get_format_instructions()
+    format_instructions = get_simple_format_instructions(BasicAndReversedModel)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator. 
@@ -200,7 +245,7 @@ def BasicAndReversedNoteGenerator(llm, question_with_answer):
 def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=BasicTypeInAnswerModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
-    format_instructions = parser.get_format_instructions()
+    format_instructions = get_simple_format_instructions(BasicTypeInAnswerModel)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator. 
@@ -239,7 +284,7 @@ def BasicTypeInAnswerNoteGenerator(llm, question_with_answer):
 def ClozeNoteGenerator(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=ClozeModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
-    format_instructions = parser.get_format_instructions()
+    format_instructions = get_simple_format_instructions(ClozeModel)
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a flashcard generator. 
@@ -282,7 +327,7 @@ def ClozeNoteGenerator(llm, question_with_answer):
 def ListNoteGenerator(llm, question_with_answer):
     parser = PydanticOutputParser(pydantic_object=ClozeModel)
     fixing_parser = create_thinking_aware_parser(parser, llm)
-    format_instructions = parser.get_format_instructions()
+    format_instructions = get_simple_format_instructions(ClozeModel)
     logger.debug(f"ListNoteGenerator format instructions: {format_instructions}")
     prompt = PromptTemplate(
     template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
