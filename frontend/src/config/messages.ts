@@ -142,7 +142,7 @@ export const TOOLTIPS = {
   API_KEY: (providerName: string) => `Your ${providerName} API key - stored securely`,
 
   // Thinking configuration
-  THINKING_ENABLED: 'Allow the model to spend more time reasoning before responding - improves quality but increases cost',
-  THINKING_BUDGET: 'Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more',
-  REASONING_EFFORT: 'Controls how much computational effort the model uses for reasoning',
+  THINKING_ENABLED: 'Allow the model to spend more time reasoning before responding (if supported). Works with: OpenAI o1/o3/o4 models, all Claude models, Gemini *-thinking-* models, and some Ollama models (qwen, cogito). Improves quality but increases cost.',
+  THINKING_BUDGET: 'Number of tokens allocated for thinking - higher values allow deeper reasoning but cost more (Claude models only)',
+  REASONING_EFFORT: 'Controls how much computational effort the model uses for reasoning (OpenAI o-series models only)',
 } as const;
