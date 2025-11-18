@@ -69,12 +69,25 @@ class GoogleProvider(LLMProvider):
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 models = genai.list_models()
+
+                # Exclude these types from chat models
+                excluded_keywords = ['computer-use', 'robotics', 'image', 'tts', 'embedding']
+
                 # Filter for chat/generation models (generateContent capability)
-                model_ids = [
-                    model.name.replace('models/', '')
-                    for model in models
-                    if 'generateContent' in model.supported_generation_methods
-                ]
+                model_ids = []
+                for model in models:
+                    # Must have generateContent capability
+                    if 'generateContent' not in model.supported_generation_methods:
+                        continue
+                    # Must start with gemini-
+                    model_id = model.name.replace('models/', '')
+                    if not model_id.startswith('gemini-'):
+                        continue
+                    # Exclude models with excluded keywords
+                    if any(keyword in model_id.lower() for keyword in excluded_keywords):
+                        continue
+                    model_ids.append(model_id)
+
                 if model_ids:
                     # Sort with popular models first, then alphabetically
                     popular = [m for m in self.POPULAR_MODELS if m in model_ids]
@@ -88,6 +101,29 @@ class GoogleProvider(LLMProvider):
 
     def get_available_embedding_models(self) -> List[str]:
         """Get available Google embedding models."""
+        # If we have an API key, try to fetch embedding models from API
+        if self.api_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                models = genai.list_models()
+
+                # Filter for embedding models (embedContent capability)
+                model_ids = [
+                    model.name  # Keep the 'models/' prefix for embeddings
+                    for model in models
+                    if 'embedContent' in model.supported_generation_methods
+                ]
+
+                if model_ids:
+                    # Sort with popular models first, then alphabetically
+                    popular = [m for m in self.EMBEDDING_MODELS if m in model_ids]
+                    other = sorted([m for m in model_ids if m not in self.EMBEDDING_MODELS])
+                    return popular + other
+            except Exception as e:
+                logging.warning(f"Failed to fetch Google embedding models from API: {e}")
+
+        # Fallback to curated list
         return self.EMBEDDING_MODELS
 
     def get_embeddings(self, model: Optional[str] = None):

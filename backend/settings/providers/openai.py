@@ -81,13 +81,25 @@ class OpenAIProvider(LLMProvider):
                 from openai import OpenAI
                 client = OpenAI(api_key=self.api_key)
                 models = client.models.list()
-                # Filter for chat models only (exclude image, audio, embedding models)
-                excluded_prefixes = ('dall-e', 'whisper', 'tts', 'text-embedding', 'babbage', 'davinci')
-                model_ids = [
-                    model.id for model in models.data
-                    if (model.id.startswith(('gpt-', 'o1-', 'o3-')) and
-                        not model.id.startswith(excluded_prefixes))
+
+                # Filter for chat/completion models only
+                # Exclude: image, audio, tts, embedding, realtime, search, transcribe, moderation, etc.
+                excluded_keywords = [
+                    'image', 'audio', 'tts', 'dall-e', 'whisper',
+                    'embedding', 'realtime', 'search', 'transcribe',
+                    'babbage', 'davinci', 'sora', 'moderation', 'codex'
                 ]
+
+                model_ids = []
+                for model in models.data:
+                    # Must start with gpt- or o (for o1, o3, o4 series)
+                    if not (model.id.startswith('gpt-') or model.id.startswith('o')):
+                        continue
+                    # Exclude models with any excluded keyword
+                    if any(keyword in model.id.lower() for keyword in excluded_keywords):
+                        continue
+                    model_ids.append(model.id)
+
                 if model_ids:
                     # Sort with popular models first, then alphabetically
                     popular = [m for m in self.POPULAR_MODELS if m in model_ids]
@@ -101,6 +113,28 @@ class OpenAIProvider(LLMProvider):
 
     def get_available_embedding_models(self) -> List[str]:
         """Get available OpenAI embedding models."""
+        # If we have an API key, try to fetch embedding models from API
+        if self.api_key:
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=self.api_key)
+                models = client.models.list()
+
+                # Filter for embedding models
+                model_ids = [
+                    model.id for model in models.data
+                    if 'embedding' in model.id.lower()
+                ]
+
+                if model_ids:
+                    # Sort with popular models first, then alphabetically
+                    popular = [m for m in self.EMBEDDING_MODELS if m in model_ids]
+                    other = sorted([m for m in model_ids if m not in self.EMBEDDING_MODELS])
+                    return popular + other
+            except Exception as e:
+                logging.warning(f"Failed to fetch OpenAI embedding models from API: {e}")
+
+        # Fallback to curated list
         return self.EMBEDDING_MODELS
 
     def get_embeddings(self, model: Optional[str] = None):
