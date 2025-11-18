@@ -30,9 +30,11 @@ class OllamaProvider(LLMProvider):
         return True
 
     def supports_thinking(self) -> bool:
-        """Ollama supports thinking for qwen models and models with 'think' in name."""
-        model = self.model or "llama3.2"
-        return "qwen" in model.lower() or "think" in model.lower()
+        """
+        Thinking controls are always available.
+        Some Ollama models (qwen, cogito, etc.) support thinking natively.
+        """
+        return True  # Always show UI controls
 
     def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get Ollama LLM instance."""

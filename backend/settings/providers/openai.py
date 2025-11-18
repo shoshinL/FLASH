@@ -39,10 +39,11 @@ class OpenAIProvider(LLMProvider):
         return True
 
     def supports_thinking(self) -> bool:
-        """OpenAI o-series models support reasoning controls."""
-        model = self.model or "gpt-4o-mini"
-        reasoning_models = ["o1", "o1-mini", "o1-preview", "o3-mini"]
-        return any(model.startswith(rm) for rm in reasoning_models)
+        """
+        Thinking controls are always available.
+        Applied when model likely supports it (o1, o3, o4 series).
+        """
+        return True  # Always show UI controls
 
     def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get OpenAI LLM instance."""
@@ -51,9 +52,8 @@ class OpenAIProvider(LLMProvider):
 
         model = self.model or "gpt-4o-mini"
 
-        # Reasoning models (o1, o3-mini, etc.) don't support temperature parameter
-        reasoning_models = ["o1", "o1-mini", "o1-preview", "o3-mini"]
-        is_reasoning_model = any(model.startswith(rm) for rm in reasoning_models)
+        # Reasoning models: o1, o3, o4 series (don't support temperature parameter)
+        is_reasoning_model = model.startswith(('o1', 'o3', 'o4'))
 
         kwargs = {
             "openai_api_key": self.api_key,
@@ -63,11 +63,10 @@ class OpenAIProvider(LLMProvider):
         # Reasoning models get reasoning config if enabled
         if is_reasoning_model and thinking_config and thinking_config.get("enabled"):
             # OpenAI reasoning models support 'reasoning' parameter
-            # Note: 'summary' requires organization verification, so we skip it
             kwargs["reasoning"] = {
                 "effort": thinking_config.get("effort", "medium")
             }
-        # Standard models get temperature
+        # Standard models get temperature (silently ignore thinking config)
         elif not is_reasoning_model:
             kwargs["temperature"] = temperature if temperature is not None else self.temperature
 

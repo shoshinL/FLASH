@@ -23,12 +23,6 @@ class GoogleProvider(LLMProvider):
         "models/text-embedding-004"
     ]
 
-    THINKING_MODELS = [
-        "gemini-2.0-flash-thinking-exp-1219",
-        "gemini-2.0-flash-thinking-exp",
-        "gemini-2.5-flash-lite"
-    ]
-
     @property
     def name(self) -> str:
         return "google"
@@ -41,9 +35,11 @@ class GoogleProvider(LLMProvider):
         return True
 
     def supports_thinking(self) -> bool:
-        """Specific Gemini models support thinking mode."""
-        model = self.model or "gemini-2.0-flash-exp"
-        return model in self.THINKING_MODELS or "thinking" in model.lower()
+        """
+        Thinking controls are always available.
+        Models with 'thinking' in name use it automatically (model-intrinsic).
+        """
+        return True  # Always show UI controls
 
     def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get Google Gemini LLM instance."""

@@ -41,10 +41,11 @@ class OpenRouterProvider(LLMProvider):
         return True  # OpenRouter now provides embeddings
 
     def supports_thinking(self) -> bool:
-        """OpenRouter thinking support depends on underlying model (complex to determine)."""
-        # For simplicity, return False for now
-        # Users can select thinking-capable models through the provider
-        return False
+        """
+        Thinking controls are always available.
+        Support depends on the underlying model (varies by provider).
+        """
+        return True  # Always show UI controls
 
     def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
         """Get OpenRouter LLM instance."""
