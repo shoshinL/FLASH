@@ -55,6 +55,22 @@ class AnthropicProvider(LLMProvider):
 
     def get_available_models(self) -> List[str]:
         """Get available Anthropic models."""
+        # If we have an API key, try to fetch models from API
+        if self.api_key:
+            try:
+                from anthropic import Anthropic
+                client = Anthropic(api_key=self.api_key)
+                models = client.models.list()
+                model_ids = [model.id for model in models.data]
+                if model_ids:
+                    # Sort with popular models first, then alphabetically
+                    popular = [m for m in self.POPULAR_MODELS if m in model_ids]
+                    other = sorted([m for m in model_ids if m not in self.POPULAR_MODELS])
+                    return popular + other
+            except Exception as e:
+                logging.warning(f"Failed to fetch Anthropic models from API: {e}")
+
+        # Fallback to curated list
         return self.POPULAR_MODELS
 
     def get_available_embedding_models(self) -> List[str]:
