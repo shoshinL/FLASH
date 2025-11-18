@@ -1,8 +1,7 @@
 /**
- * Reusable Model Selection Component with Grouping
+ * Reusable Model Selection Component
  */
 
-import { groupModels } from "../../utils/modelGrouping";
 import { requiresApiKey, hasApiKey } from "../../utils/validation";
 import { PROVIDER_DISPLAY_NAMES } from "../../config/providers";
 import { INFO, OLLAMA_EXAMPLES } from "../../config";
@@ -81,8 +80,6 @@ export function ModelSelector({
     );
   }
 
-  const groupedModels = groupModels(provider, models, isEmbedding);
-
   return (
     <div className="settings-item">
       <label>
@@ -97,14 +94,10 @@ export function ModelSelector({
         <option value="" disabled>
           {INFO.SELECT_MODEL}
         </option>
-        {Object.entries(groupedModels).map(([groupName, groupModels]) => (
-          <optgroup key={groupName} label={groupName}>
-            {groupModels.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </optgroup>
+        {models.map((model) => (
+          <option key={model} value={model}>
+            {model}
+          </option>
         ))}
       </select>
     </div>
