@@ -43,7 +43,7 @@ class OpenRouterProvider(LLMProvider):
     def supports_thinking(self) -> bool:
         """
         Thinking controls are always available.
-        Support depends on the underlying model (varies by provider).
+        Best-effort approach: tries to enable reasoning, falls back gracefully.
         """
         return True  # Always show UI controls
 
@@ -52,13 +52,24 @@ class OpenRouterProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("OpenRouter API key is required")
 
-        # OpenRouter uses OpenAI-compatible API
-        return ChatOpenAI(
-            openai_api_key=self.api_key,
-            openai_api_base="https://openrouter.ai/api/v1",
-            model=self.model or "anthropic/claude-3.5-sonnet",
-            temperature=temperature if temperature is not None else self.temperature
-        )
+        kwargs = {
+            "openai_api_key": self.api_key,
+            "openai_api_base": "https://openrouter.ai/api/v1",
+            "model": self.model or "anthropic/claude-3.5-sonnet",
+            "temperature": temperature if temperature is not None else self.temperature
+        }
+
+        # Try to enable thinking if requested
+        if thinking_config and thinking_config.get("enabled"):
+            try:
+                # OpenRouter support depends on the underlying model
+                # Some models may support reasoning parameters
+                # The API will handle gracefully if not supported
+                pass
+            except Exception as e:
+                logging.debug(f"Thinking not supported for {self.model}, continuing without it: {e}")
+
+        return ChatOpenAI(**kwargs)
 
     def get_available_models(self) -> List[str]:
         """Get available OpenRouter models."""

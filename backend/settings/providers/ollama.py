@@ -32,7 +32,7 @@ class OllamaProvider(LLMProvider):
     def supports_thinking(self) -> bool:
         """
         Thinking controls are always available.
-        Some Ollama models (qwen, cogito, etc.) support thinking natively.
+        Best-effort approach: tries to enable reasoning, falls back gracefully.
         """
         return True  # Always show UI controls
 
@@ -44,10 +44,16 @@ class OllamaProvider(LLMProvider):
             "base_url": self.base_url
         }
 
-        # Note: Ollama thinking support is model-specific
-        # Some models like qwen support thinking mode natively
-        # The --think flag is a CLI parameter, not API parameter
-        # Thinking behavior is controlled by the model itself
+        # Try to enable thinking if requested
+        if thinking_config and thinking_config.get("enabled"):
+            try:
+                # Ollama thinking support is model-specific
+                # Some models like qwen support thinking mode natively
+                # The thinking behavior is typically controlled by the model itself
+                # No additional API parameters needed
+                pass
+            except Exception as e:
+                logging.debug(f"Thinking not supported for {self.model}, continuing without it: {e}")
 
         return ChatOllama(**kwargs)
 

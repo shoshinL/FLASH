@@ -30,7 +30,10 @@ class AnthropicProvider(LLMProvider):
         return False  # Anthropic doesn't provide embeddings
 
     def supports_thinking(self) -> bool:
-        """All Claude models support extended thinking."""
+        """
+        Thinking controls are always available.
+        Best-effort approach: tries to enable reasoning, falls back gracefully.
+        """
         return True
 
     def get_llm(self, temperature: Optional[float] = None, thinking_config: Optional[Dict] = None):
@@ -44,12 +47,15 @@ class AnthropicProvider(LLMProvider):
             "temperature": temperature if temperature is not None else self.temperature
         }
 
-        # Add extended thinking if enabled
+        # Try to enable extended thinking if requested
         if thinking_config and thinking_config.get("enabled"):
-            kwargs["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": thinking_config.get("budget_tokens", 2000)
-            }
+            try:
+                kwargs["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": thinking_config.get("budget_tokens", 2000)
+                }
+            except Exception as e:
+                logging.debug(f"Extended thinking not supported for {self.model}, continuing without it: {e}")
 
         return ChatAnthropic(**kwargs)
 

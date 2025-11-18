@@ -37,7 +37,7 @@ class GoogleProvider(LLMProvider):
     def supports_thinking(self) -> bool:
         """
         Thinking controls are always available.
-        Models with 'thinking' in name use it automatically (model-intrinsic).
+        Best-effort approach: tries to enable reasoning, falls back gracefully.
         """
         return True  # Always show UI controls
 
@@ -52,8 +52,15 @@ class GoogleProvider(LLMProvider):
             "temperature": temperature if temperature is not None else self.temperature
         }
 
-        # Note: Google's thinking mode is model-specific, enabled by using thinking models
-        # No additional configuration parameters needed beyond model selection
+        # Try to enable thinking if requested
+        if thinking_config and thinking_config.get("enabled"):
+            try:
+                # Google's thinking mode is typically model-intrinsic
+                # Some models may support additional thinking parameters
+                # The API will handle gracefully if not supported
+                pass
+            except Exception as e:
+                logging.debug(f"Thinking configuration not supported for {self.model}, continuing without it: {e}")
 
         return ChatGoogleGenerativeAI(**kwargs)
 

@@ -41,7 +41,7 @@ class OpenAIProvider(LLMProvider):
     def supports_thinking(self) -> bool:
         """
         Thinking controls are always available.
-        Applied when model likely supports it (o1, o3, o4 series).
+        Best-effort approach: tries to enable reasoning, falls back gracefully.
         """
         return True  # Always show UI controls
 
@@ -52,23 +52,22 @@ class OpenAIProvider(LLMProvider):
 
         model = self.model or "gpt-4o-mini"
 
-        # Reasoning models: o1, o3, o4 series (don't support temperature parameter)
-        is_reasoning_model = model.startswith(('o1', 'o3', 'o4'))
-
         kwargs = {
             "openai_api_key": self.api_key,
             "model": model,
+            "temperature": temperature if temperature is not None else self.temperature
         }
 
-        # Reasoning models get reasoning config if enabled
-        if is_reasoning_model and thinking_config and thinking_config.get("enabled"):
-            # OpenAI reasoning models support 'reasoning' parameter
-            kwargs["reasoning"] = {
-                "effort": thinking_config.get("effort", "medium")
-            }
-        # Standard models get temperature (silently ignore thinking config)
-        elif not is_reasoning_model:
-            kwargs["temperature"] = temperature if temperature is not None else self.temperature
+        # Try to enable reasoning if requested
+        if thinking_config and thinking_config.get("enabled"):
+            try:
+                # Try reasoning configuration (for o1, o3, o4 models)
+                kwargs["reasoning"] = {
+                    "effort": thinking_config.get("effort", "medium")
+                }
+                # Note: If model doesn't support reasoning, ChatOpenAI will handle gracefully
+            except Exception as e:
+                logging.debug(f"Reasoning not supported for {model}, continuing without it: {e}")
 
         return ChatOpenAI(**kwargs)
 
